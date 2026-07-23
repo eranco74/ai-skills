@@ -1,0 +1,264 @@
+[
+  {
+    "case_id": "OSAC-2917",
+    "jira_key": "OSAC-2917",
+    "title": "GPU-Enabled Compute Instances",
+    "expected_score": 9,
+    "prd_exists": true,
+    "checks": {
+      "check-structure": {
+        "pass": true,
+        "issues": []
+      },
+      "check-personas": {
+        "pass": true,
+        "issues": []
+      },
+      "check-leakage": {
+        "pass": true,
+        "issues": []
+      }
+    },
+    "checks_pass": true,
+    "gold_comparison": {
+      "section_overlap": 0.875,
+      "missing_sections": [
+        "provenance"
+      ],
+      "extra_sections": [],
+      "persona_overlap": 1.0,
+      "missing_personas": [],
+      "length_ratio": 1.03,
+      "gen_lines": 60,
+      "gold_lines": 58
+    },
+    "review_score": 9,
+    "review_pass": true,
+    "review_recommendation": "submit",
+    "review_scores": {
+      "what": 2,
+      "why": 2,
+      "user_facing": 2,
+      "right_sized": 2,
+      "testability": 1
+    }
+  },
+  {
+    "case_id": "OSAC-1270",
+    "jira_key": "OSAC-1270",
+    "title": "Base OS Management for Bare-Metal Instances",
+    "expected_score": 10,
+    "prd_exists": true,
+    "checks": {
+      "check-structure": {
+        "pass": true,
+        "issues": []
+      },
+      "check-personas": {
+        "pass": true,
+        "issues": []
+      },
+      "check-leakage": {
+        "pass": true,
+        "issues": []
+      }
+    },
+    "checks_pass": true,
+    "gold_comparison": {
+      "section_overlap": 0.8333333333333334,
+      "missing_sections": [
+        "provenance"
+      ],
+      "extra_sections": [
+        "assumptions"
+      ],
+      "persona_overlap": 1.0,
+      "missing_personas": [],
+      "length_ratio": 1.5,
+      "gen_lines": 57,
+      "gold_lines": 38
+    },
+    "review_score": 10,
+    "review_pass": true,
+    "review_recommendation": "submit",
+    "review_scores": {
+      "what": 2,
+      "why": 2,
+      "user_facing": 2,
+      "right_sized": 2,
+      "testability": 2
+    }
+  },
+  {
+    "case_id": "OSAC-2540",
+    "jira_key": "OSAC-2540",
+    "title": "DiskImage Resource",
+    "expected_score": 9,
+    "prd_exists": true,
+    "checks": {
+      "check-structure": {
+        "pass": true,
+        "issues": []
+      },
+      "check-personas": {
+        "pass": true,
+        "issues": []
+      },
+      "check-leakage": {
+        "pass": true,
+        "issues": []
+      }
+    },
+    "checks_pass": true,
+    "gold_comparison": {
+      "section_overlap": 0.875,
+      "missing_sections": [
+        "provenance"
+      ],
+      "extra_sections": [
+        "osac dimensions"
+      ],
+      "persona_overlap": 1.0,
+      "missing_personas": [],
+      "length_ratio": 1.31,
+      "gen_lines": 102,
+      "gold_lines": 78
+    },
+    "review_score": 10,
+    "review_pass": true,
+    "review_recommendation": "submit",
+    "review_scores": {
+      "what": 2,
+      "why": 2,
+      "user_facing": 2,
+      "right_sized": 2,
+      "testability": 2
+    }
+  },
+  {
+    "case_id": "OSAC-1332",
+    "jira_key": "OSAC-1332",
+    "title": "CaaS Cluster Storage",
+    "expected_score": 8,
+    "prd_exists": true,
+    "checks": {
+      "check-structure": {
+        "pass": true,
+        "issues": []
+      },
+      "check-personas": {
+        "pass": true,
+        "issues": []
+      },
+      "check-leakage": {
+        "pass": true,
+        "issues": []
+      }
+    },
+    "checks_pass": true,
+    "gold_comparison": {
+      "section_overlap": 1.0,
+      "missing_sections": [],
+      "extra_sections": [],
+      "persona_overlap": 1.0,
+      "missing_personas": [],
+      "length_ratio": 1.9,
+      "gen_lines": 59,
+      "gold_lines": 31
+    },
+    "review_score": 10,
+    "review_pass": true,
+    "review_recommendation": "submit",
+    "review_scores": {
+      "what": 2,
+      "why": 2,
+      "user_facing": 2,
+      "right_sized": 2,
+      "testability": 2
+    }
+  },
+  {
+    "case_id": "OSAC-1567",
+    "jira_key": "OSAC-1567",
+    "title": "Secret Management",
+    "expected_score": 8,
+    "prd_exists": true,
+    "checks": {
+      "check-structure": {
+        "pass": true,
+        "issues": []
+      },
+      "check-personas": {
+        "pass": true,
+        "issues": []
+      },
+      "check-leakage": {
+        "pass": true,
+        "issues": []
+      }
+    },
+    "checks_pass": true,
+    "gold_comparison": {
+      "section_overlap": 1.0,
+      "missing_sections": [],
+      "extra_sections": [],
+      "persona_overlap": 1.0,
+      "missing_personas": [],
+      "length_ratio": 1.38,
+      "gen_lines": 58,
+      "gold_lines": 42
+    },
+    "review_score": 10,
+    "review_pass": true,
+    "review_recommendation": "submit",
+    "review_scores": {
+      "what": 2,
+      "why": 2,
+      "user_facing": 2,
+      "right_sized": 2,
+      "testability": 2
+    }
+  },
+  {
+    "case_id": "OSAC-2872",
+    "jira_key": "OSAC-2872",
+    "title": "OSAC Storage Control Plane",
+    "expected_score": 9,
+    "prd_exists": true,
+    "checks": {
+      "check-structure": {
+        "pass": true,
+        "issues": []
+      },
+      "check-personas": {
+        "pass": true,
+        "issues": []
+      },
+      "check-leakage": {
+        "pass": true,
+        "issues": []
+      }
+    },
+    "checks_pass": true,
+    "gold_comparison": {
+      "section_overlap": 1.0,
+      "missing_sections": [],
+      "extra_sections": [],
+      "persona_overlap": 1.0,
+      "missing_personas": [],
+      "length_ratio": 1.18,
+      "gen_lines": 60,
+      "gold_lines": 51
+    },
+    "review_score": 10,
+    "review_pass": true,
+    "review_recommendation": "submit",
+    "review_scores": {
+      "what": 2,
+      "why": 2,
+      "user_facing": 2,
+      "right_sized": 2,
+      "testability": 2
+    }
+  }
+]
