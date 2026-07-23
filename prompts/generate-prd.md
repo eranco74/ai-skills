@@ -28,6 +28,11 @@ Read ALL of these before writing.
 5. **Platform vocabulary is allowed.** Naming OpenShift, Kubernetes, ClusterOrder,
    ComputeInstance, VirtualNetwork, StorageClass, etc. is fine — these are
    user-visible. Naming internal components is not.
+6. **Be concise.** Target 40-80 non-blank lines. Top-scoring PRDs average 60 lines.
+   Every sentence must earn its place. Prefer bullet lists over paragraphs.
+   Do not repeat information across sections.
+7. **Derive Author from Jira.** Use the Jira assignee or reporter name — never
+   "PRD Generator" or "TBD" for the Author field.
 6. **Scope tightly.** One PRD = one coherent feature. If the Jira feature bundles
    independent capabilities, note them but write the PRD for the core capability.
 7. **No design leakage smell tests:**
@@ -51,9 +56,20 @@ Read these files in order:
 
 Before writing, determine:
 - **Which OSAC services** are affected (BMaaS, CaaS, VMaaS, MaaS, Enclave)?
-- **Which personas** are affected?
+- **Which personas** are affected? If two personas have identical capabilities
+  in this feature, combine them (e.g., "### Tenant Admin/User" with a note
+  "Tenant Admin and Tenant User have the same capabilities in this scope.")
+- **What is the primary motivation?** Identify whether the Jira frames this as
+  a security/compliance need, operational/adoption blocker, or convenience
+  improvement. Frame the Problem Statement to match.
 - **What is the user pain?** State it from the user's perspective.
-- **What is the scope boundary?** What's in, what's explicitly out?
+- **What is the scope boundary?** What's in, what's explicitly out? Cross-check
+  every user story and Definition of Done item from the Jira — a missing In
+  Scope item is worse than a missing Out of Scope item.
+- **What are the failure scenarios?** What happens when the feature's operation
+  fails? (e.g., GPU unavailable, storage backend unreachable)
+- **Tenant isolation:** Does this feature create new resources? If yes, they must
+  carry standard OSAC tenant isolation metadata — state this explicitly.
 - **What are the dependencies?** Other Jira features that must land first.
 - **What are the assumptions?** Unverified preconditions.
 
@@ -160,10 +176,17 @@ python3 scripts/frontmatter.py set artifacts/prd-tasks/{JIRA_KEY}.md \
 ### Patterns from Top-Scoring PRDs
 
 **What 10/10 PRDs do:**
-- Problem statement leads with user pain, names who is affected
-- In Scope is 3-8 bullets of user-observable capabilities
-- Out of Scope is exhaustive (8-17 items) with deferral notes (OSAC-XXXX)
+- Problem statement leads with user pain AND strategic motivation (security,
+  compliance, adoption blocker — not just operational convenience)
+- In Scope covers EVERY capability from the Jira Definition of Done — no omissions
+- In Scope includes failure behavior (what happens when things go wrong)
+- In Scope mentions tenant isolation for new resources
+- Out of Scope contains 8-15 items at the feature boundary — items closely related
+  but deferred. NOT distant, unrelated capabilities that nobody would expect.
+- When two personas have identical capabilities, they are combined under one heading
+  (e.g., "### Tenant Admin/User") with a note explaining they share the same scope
 - User stories cover 3-4 personas with concrete scenarios
+- Acceptance criteria (when present in Jira) are included as a checkbox section
 - Dependencies name specific capabilities needed, not just Jira keys
 - Assumptions are specific and verifiable
 - Language is precise — no "appropriate", "efficient", "standard" without specifics
@@ -177,11 +200,28 @@ python3 scripts/frontmatter.py set artifacts/prd-tasks/{JIRA_KEY}.md \
 - Vague acceptance criteria not testable by a PM
 - List completed work as in-scope
 
+## Acceptance Criteria (Optional)
+
+If the Jira feature has a clear "Definition of Done" with PM-verifiable items,
+include an `## Acceptance Criteria` section after Dependencies with checkbox items.
+Each criterion must be verifiable by using the product — not by reading code.
+
+```markdown
+## Acceptance Criteria
+
+- [ ] {PM-verifiable scenario, e.g., "A tenant can create a PVC using a
+  StorageClass on their CaaS cluster within 5 minutes of the cluster becoming ready"}
+- [ ] {Another scenario}
+```
+
+Omit this section if the Jira feature lacks testable acceptance criteria — do not
+fabricate them.
+
 ## What NOT to Do
 
 - Do NOT ask clarifying questions — generate the best PRD from available info
 - Do NOT add FR-N/NFR-N requirement IDs — OSAC uses user stories, not numbered FRs
-- Do NOT add Acceptance Criteria as a separate section — that's in the design template
 - Do NOT add Risks or Open Questions sections — keep it focused on the OSAC template
 - Do NOT prescribe implementation — "the controller uses AAP" is design leakage
 - Do NOT use vague language — "handle edge cases appropriately" → name the edge cases
+- Do NOT repeat the same information in Problem Statement and In Scope

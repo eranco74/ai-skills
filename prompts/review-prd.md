@@ -161,6 +161,26 @@ python3 scripts/frontmatter.py set artifacts/prd-reviews/{PRD_ID}-review.md \
     scores.right_sized={n} scores.testability={n}
 ```
 
+## Calibration
+
+Be strict. The average merged PRD scores 8-9/10 after human review rounds.
+A first-draft PRD should rarely score 10/10. Common deductions:
+
+- **WHY at 1 not 2**: Problem statement describes the gap but not the concrete
+  impact on users or business. "Tenants can't do X" is 1/2. "Tenants can't do X,
+  which blocks Y adoption and forces Z workaround" is 2/2.
+- **WHAT at 1 not 2**: User stories exist but are too generic. "I want to manage
+  secrets" is 1/2. "I want to store SSH keypairs and retrieve cluster kubeconfigs"
+  is 2/2.
+- **Testability at 1 not 2**: Some user stories are testable, others are vague
+  outcomes like "storage is automatically available" without specifying what
+  "available" means to the user.
+- **Right-Sized at 1 not 2**: Feature bundles two things that could ship
+  independently (e.g., catalog management + provisioning integration).
+
+A 10/10 PRD is exceptional — it means every criterion is perfect with no room
+for improvement. Be honest about imperfections.
+
 ## Rules
 
 - Score based on what's IN the PRD, not what should be there
@@ -169,3 +189,4 @@ python3 scripts/frontmatter.py set artifacts/prd-reviews/{PRD_ID}-review.md \
 - Features that don't touch networking shouldn't be penalized for not addressing networking
 - A PRD with TBD markers for genuinely unavailable info is acceptable
 - Do NOT revise the PRD — only write the review
+- Apply the Calibration section above — first drafts rarely merit 10/10
