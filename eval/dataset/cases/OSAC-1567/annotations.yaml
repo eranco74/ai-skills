@@ -1,0 +1,4 @@
+expected_score: 8
+expected_pass: true
+gold_prd_path: enhancement-proposals/enhancements/OSAC-1567-secret-management/prd.md
+notes: "Score estimated from merged PR#93 review"
