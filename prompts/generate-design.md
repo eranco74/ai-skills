@@ -290,3 +290,30 @@ python3 scripts/frontmatter.py set artifacts/design-tasks/{JIRA_KEY}-design.md \
 - Missing tenant isolation
 - Hand-waving on error handling
 - Scope unbounded — no clear non-goals
+
+## Lessons from Iteration 1 (apply these)
+
+1. **Resolution timing matters.** When a design involves resolving a reference
+   (version name → release image, disk image name → OCI URL), prefer
+   controller-time resolution (declarative) over API-time resolution (imperative).
+   The stored resource should reference the name, not the resolved value.
+
+2. **Include event plumbing.** For new resources that go through the generic
+   server, add the `oneof payload` entry in the event proto. Include a
+   subsection for event types and their payloads.
+
+3. **Include CLI/UI rendering.** Add subsections for:
+   - CLI table columns (`osacctl get <resource>`)
+   - CLI create/update commands with flags
+   - UI page integration (list columns, detail fields)
+   Use the table rendering YAML pattern from fulfillment-service.
+
+4. **Database trigger detail.** Specify:
+   - Trigger names and timing (BEFORE INSERT, BEFORE UPDATE, BEFORE DELETE)
+   - Locking behavior (FOR SHARE, FOR UPDATE)
+   - SQLSTATE error codes (Z0001=immutable, Z0002=reference, Z0003=in-use)
+   - The `translateError` mapping from SQLSTATE → gRPC error code
+
+5. **Reference specific source files.** When describing changes to existing
+   code, reference the actual file paths (e.g., `internal/servers/generic_server.go`,
+   `internal/rendering/tables/*.yaml`).
