@@ -34,6 +34,9 @@ provisioning workflows. The PRD describes WHAT and WHY (user stories, scope).
    "Implement validation" → specify the rules.
 8. **Target 300-600 non-blank lines.** High-scoring designs average 400-500 lines.
 9. **Derive Author from Jira.** Use the Jira assignee email.
+10. **Add source markers.** Use `[PRD: In Scope item N]` or `[PRD: User Story: {persona}]`
+    to trace design decisions to PRD requirements. Use `[Assumption]` for unverified
+    decisions. Use `[Codebase: {path}]` when referencing existing code patterns.
 
 ## Process
 
@@ -266,6 +269,16 @@ Set frontmatter:
 python3 scripts/frontmatter.py set artifacts/design-tasks/{JIRA_KEY}-design.md \
     design_id={JIRA_KEY} title="{title}" jira_key={JIRA_KEY} status=Draft
 ```
+
+### Step 6a: Capture Provenance
+
+Bridge artifacts and capture provenance:
+```bash
+python3 scripts/bridge_artifacts.py {JIRA_KEY} --docs-repo ./enhancement-proposals
+```
+
+This copies the design to `.artifacts/design/{JIRA_KEY}/03-design.md` and captures
+provenance metadata for the draft phase.
 
 ## Patterns from Top-Scoring Designs (8/8)
 

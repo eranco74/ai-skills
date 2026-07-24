@@ -72,5 +72,18 @@ python3 scripts/frontmatter.py set artifacts/design-reviews/{DESIGN_ID}-review.m
     auto_revised=true
 ```
 
-Do not return a summary. Your work is complete when the design is revised
-and `auto_revised=true` is set.
+### Step 5: Capture Provenance
+
+Bridge the updated artifacts and capture provenance for the revise phase:
+```bash
+python3 scripts/bridge_artifacts.py {DESIGN_ID}
+```
+
+Then update provenance to reflect the revise phase:
+```bash
+python3 ~/.ai-workflows/_shared/scripts/provenance.py capture \
+    --workflow design --issue {DESIGN_ID} --phase revise --authoring-mode skill
+```
+
+Do not return a summary. Your work is complete when the design is revised,
+`auto_revised=true` is set, and provenance is captured.
