@@ -294,13 +294,23 @@ python3 scripts/frontmatter.py set artifacts/design-tasks/{JIRA_KEY}-design.md \
 ## Lessons from Iteration 1 (apply these)
 
 1. **Resolution timing matters.** When a design involves resolving a reference
-   (version name → release image, disk image name → OCI URL), prefer
-   controller-time resolution (declarative) over API-time resolution (imperative).
-   The stored resource should reference the name, not the resolved value.
+   (version name → release image, disk image name → OCI URL), ALWAYS defer
+   resolution to the controller/reconciler at reconciliation time, NOT at API
+   creation time in the server handler. The resource spec stores only the
+   symbolic reference (e.g., `version_name`). The controller resolves it to
+   the concrete value (e.g., release image URL) during reconciliation and
+   places the resolved value in the CRD status or passes it as an extra var
+   to AAP. This keeps the API declarative — the user expresses intent, the
+   system resolves it. Validation (does this version exist?) happens at API
+   time; resolution (what image does it map to?) happens at controller time.
 
 2. **Include event plumbing.** For new resources that go through the generic
-   server, add the `oneof payload` entry in the event proto. Include a
-   subsection for event types and their payloads.
+   server, describe BOTH layers:
+   a) Proto layer: add a new field in the `Event.oneof payload` message in
+      the event proto file (with field number).
+   b) Server layer: add the case to the `setPayload()` switch in
+      `internal/servers/generic_server.go`.
+   Include the proto snippet showing the exact `oneof` addition.
 
 3. **Include CLI/UI rendering.** Add subsections for:
    - CLI table columns (`osacctl get <resource>`)
