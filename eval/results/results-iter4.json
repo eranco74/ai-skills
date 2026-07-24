@@ -1,0 +1,44 @@
+[
+  {
+    "case_id": "OSAC-1332",
+    "jira_key": "OSAC-1332",
+    "title": "CaaS Cluster Storage",
+    "expected_score": 8,
+    "prd_exists": true,
+    "checks": {
+      "check-structure": {
+        "pass": true,
+        "issues": []
+      },
+      "check-personas": {
+        "pass": true,
+        "issues": []
+      },
+      "check-leakage": {
+        "pass": true,
+        "issues": []
+      }
+    },
+    "checks_pass": true,
+    "gold_comparison": {
+      "section_overlap": 1.0,
+      "missing_sections": [],
+      "extra_sections": [],
+      "persona_overlap": 1.0,
+      "missing_personas": [],
+      "length_ratio": 1.16,
+      "gen_lines": 36,
+      "gold_lines": 31
+    },
+    "review_score": 9,
+    "review_pass": true,
+    "review_recommendation": "submit",
+    "review_scores": {
+      "what": 2,
+      "why": 2,
+      "user_facing": 2,
+      "right_sized": 2,
+      "testability": 1
+    }
+  }
+]

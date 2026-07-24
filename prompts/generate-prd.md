@@ -48,12 +48,33 @@ Read ALL of these before writing.
     Only add `[Jira: {KEY}]` when a requirement comes from a non-obvious source
     (linked issue, Jira comment). Add `[Assumption]` markers for any requirement
     not directly stated in the Jira source.
-6. **Scope tightly.** One PRD = one coherent feature. If the Jira feature bundles
-   independent capabilities, note them but write the PRD for the core capability.
-7. **No design leakage smell tests:**
-   - Could a PM verify this by using the product? If no → design leakage.
-   - Would this statement change if the implementation changed? If yes → design.
-   - Does this name something only visible in code? If yes → design leakage.
+11. **Scope tightly.** One PRD = one coherent feature. If the Jira feature bundles
+    independent capabilities, note them but write the PRD for the core capability.
+12. **No design leakage smell tests:**
+    - Could a PM verify this by using the product? If no → design leakage.
+    - Would this statement change if the implementation changed? If yes → design.
+    - Does this name something only visible in code? If yes → design leakage.
+
+## Size Calibration
+
+Match output depth to feature complexity. Do NOT over-engineer small features.
+
+- **User Stories:** One story per distinct user goal. Consolidate similar stories
+  rather than writing near-duplicates for different personas. If two personas
+  do the same thing, combine them under one heading.
+- **Out of Scope:** Include only items a reviewer would plausibly ask about.
+  For a simple feature, 4-6 items is sufficient. More than 10 items for a
+  single-resource feature suggests you're listing things nobody would expect.
+- **Personas:** Only personas genuinely affected. Don't invent interactions.
+  If Cloud Infrastructure Admin isn't affected, say so in one line — don't pad.
+- **Risks/Assumptions:** 2-4 specific items better than 6 generic ones. Each
+  risk must name a concrete failure mode, not a vague category.
+- **Line count guide:**
+  - Simple feature (1-2 capabilities): 30-50 lines
+  - Medium feature (3-5 capabilities): 50-80 lines
+  - Complex feature (5+ capabilities): 80-120 lines
+  - If your PRD is longer than the gold standard for a comparable feature,
+    you are likely over-engineering it.
 
 ## Process
 
@@ -156,20 +177,20 @@ Before saving, verify:
 **Structure:**
 - [ ] Problem Statement present and user-focused
 - [ ] In Scope is a bullet list of user-observable capabilities
-- [ ] Out of Scope is exhaustive (10+ items for complex features)
+- [ ] Out of Scope items are boundary-adjacent (reviewers would plausibly ask)
 - [ ] User Stories grouped by persona with headings
-- [ ] Each affected persona has at least one user story
-- [ ] Unaffected personas noted as "Not affected"
+- [ ] Each affected persona has at least one user story (combined if identical)
+- [ ] Unaffected personas noted as "Not affected" in one line
 - [ ] Optional sections (Assumptions, Dependencies) omitted if empty
 
-**Content:**
-- [ ] No controller names, reconciler logic, finalizer behavior
-- [ ] No playbook parameters, env vars, internal conditions
-- [ ] No CRD field names (use user-observable behavior instead)
-- [ ] Platform vocabulary (ClusterOrder, ComputeInstance, etc.) is acceptable
-- [ ] Every requirement traces to Jira source
-- [ ] User stories are specific (name artifacts, workflows, scenarios)
-- [ ] Out of scope items have rationale or deferral references
+**Content (anti-pattern checks):**
+- [ ] **Be Specific** — every requirement is testable; no vague terms
+- [ ] **User-Centric** — described from user perspective, not system perspective
+- [ ] **Measurable** — metrics included where data exists; not invented
+- [ ] **No Implementation** — no controllers, playbooks, internal components
+- [ ] **Honest Constraints** — uncertain constraints listed as assumptions
+- [ ] **No Scope Creep** — scope matches Jira feature, not broader vision
+- [ ] **Right-Sized** — output depth proportional to feature complexity
 
 **Scoring readiness (target 7+/10):**
 - [ ] WHAT: Clear user-facing need with personas and services identified (2/2)
