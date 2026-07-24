@@ -277,62 +277,97 @@ class DesignScorer:
             "issues": issues,
         }
 
+    def detect_design_type(self) -> str:
+        """Detect whether this is a UI design or backend design.
+
+        Uses strong signals (component libraries, UI frameworks) weighted 2x
+        and weak signals (mentions of UI repos) weighted 1x. Threshold: 5+.
+        A backend design that mentions osac-ui in a CLI section won't trigger.
+        """
+        strong = ["patternfly", "tanstack", "formik", "useapiquery",
+                  "useapifetch", "no backend changes", "ui-only"]
+        weak = ["react", "osac-ui", "osac-ux", "typescript", "cypress", "frontend"]
+        content_lower = self.content.lower()
+        score = sum(2 for s in strong if s in content_lower)
+        score += sum(1 for s in weak if s in content_lower)
+        if score >= 5:
+            return "ui"
+        return "backend"
+
     def check_proto(self) -> Dict[str, Any]:
-        """Check if design includes proto schema definitions."""
+        """Check if design includes proto or TypeScript schema definitions."""
+        design_type = self.detect_design_type()
         has_proto = False
         proto_count = 0
+        has_typescript = False
+        ts_count = 0
 
-        # Check for proto code blocks
         in_proto_block = False
+        in_ts_block = False
         for line in self.lines:
             if re.match(r"^```(protobuf|proto)\s*$", line):
                 in_proto_block = True
                 has_proto = True
                 continue
-            elif line.strip() == "```" and in_proto_block:
+            elif re.match(r"^```(typescript|ts|tsx)\s*$", line):
+                in_ts_block = True
+                has_typescript = True
+                continue
+            elif line.strip() == "```" and (in_proto_block or in_ts_block):
+                if in_proto_block:
+                    proto_count += 1
+                if in_ts_block:
+                    ts_count += 1
                 in_proto_block = False
-                proto_count += 1
+                in_ts_block = False
                 continue
 
-            # Check for proto message definitions outside code blocks
             if not in_proto_block and re.match(r"^\s*message\s+\w+", line):
                 has_proto = True
                 proto_count += 1
+            if not in_ts_block and re.match(r"^\s*(export\s+)?(interface|type)\s+\w+", line):
+                has_typescript = True
+                ts_count += 1
+
+        if design_type == "ui":
+            has_schemas = has_proto or has_typescript
+            return {
+                "pass": has_schemas,
+                "design_type": "ui",
+                "has_proto": has_proto,
+                "proto_count": proto_count,
+                "has_typescript": has_typescript,
+                "ts_count": ts_count,
+            }
 
         return {
             "pass": has_proto,
+            "design_type": "backend",
             "has_proto": has_proto,
             "proto_count": proto_count,
         }
 
     def check_tenant_isolation(self) -> Dict[str, Any]:
-        """Check if design mentions tenant isolation metadata."""
+        """Check if design addresses tenant isolation."""
+        design_type = self.detect_design_type()
         issues = []
-        has_tenant_annotation = False
-        has_owner_annotation = False
-
         content_lower = self.content.lower()
 
-        # Check for tenant annotation
-        if "osac.openshift.io/tenant" in content_lower:
-            has_tenant_annotation = True
-        else:
-            issues.append(
-                "Missing tenant isolation annotation: osac.openshift.io/tenant"
-            )
+        if design_type == "ui":
+            has_isolation = ("tenant isolation" in content_lower or
+                           "tenant" in content_lower and "isolat" in content_lower or
+                           "osac.openshift.io/tenant" in content_lower)
+            if not has_isolation:
+                issues.append("Missing tenant isolation discussion (UI designs should explain how the API enforces isolation)")
+            return {"pass": has_isolation, "design_type": "ui", "issues": issues}
 
-        # Check for owner-reference annotation
-        if "osac.openshift.io/owner-reference" in content_lower:
-            has_owner_annotation = True
-        else:
-            issues.append(
-                "Missing owner reference annotation: osac.openshift.io/owner-reference"
-            )
-
-        return {
-            "pass": has_tenant_annotation and has_owner_annotation,
-            "issues": issues,
-        }
+        has_tenant = "osac.openshift.io/tenant" in content_lower
+        has_owner = "osac.openshift.io/owner-reference" in content_lower
+        if not has_tenant:
+            issues.append("Missing tenant isolation annotation: osac.openshift.io/tenant")
+        if not has_owner:
+            issues.append("Missing owner reference annotation: osac.openshift.io/owner-reference")
+        return {"pass": has_tenant and has_owner, "design_type": "backend", "issues": issues}
 
     def check_length(self) -> Dict[str, Any]:
         """Check if design is within expected length range."""
