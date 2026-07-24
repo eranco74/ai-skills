@@ -1,0 +1,387 @@
+name: design-creator-eval
+description: Evaluate autonomous design generation quality against known-good merged designs
+
+dataset:
+  path: eval/dataset/cases
+  schema: |
+    Each case directory contains:
+    - input.yaml: Test input with fields:
+      - jira_key (string): Jira issue key (e.g., OSAC-1269)
+      - title (string): Feature title
+      - priority (string): Feature priority
+    - annotations.yaml: Expected quality with fields:
+      - expected_score (int, 0-8): Design reviewer score (architecture/feasibility/scope/testability)
+      - expected_pass (bool): Whether it should pass (threshold 5/8)
+      - gold_design_path (string): Path to merged design
+    - gold-design.md: The actual merged/approved design for comparison
+
+judges:
+  # --- Deterministic checks ---
+
+  - name: structure_valid
+    description: Verify design has all required sections
+    check: |
+      files = outputs.get("files", {})
+      designs = {k: v for k, v in files.items() if k.startswith("artifacts/design-tasks/") and k.endswith(".md") and not k.endswith("-source.md")}
+      if not designs:
+          return (False, "No design task files found")
+      errors = []
+      for fname, content in sorted(designs.items()):
+          required = ["Goals", "Proposal", "API Changes", "Implementation", "Test Plan", "Alternatives"]
+          missing = [s for s in required if f"## {s}" not in content and f"# {s}" not in content]
+          if missing:
+              errors.append(f"{fname}: missing sections: {', '.join(missing)}")
+      return (len(errors) == 0, "; ".join(errors) if errors else f"{len(designs)} designs structurally valid")
+
+  - name: proto_schema_valid
+    description: Verify design includes proto schema definitions in API Changes section
+    check: |
+      import re
+      files = outputs.get("files", {})
+      designs = {k: v for k, v in files.items() if k.startswith("artifacts/design-tasks/") and k.endswith(".md") and not k.endswith("-source.md")}
+      if not designs:
+          return (False, "No design task files found")
+      errors = []
+      for fname, content in sorted(designs.items()):
+          # Check if proto code blocks exist
+          proto_blocks = re.findall(r'```(?:proto|protobuf)\s+message\s+\w+', content, re.IGNORECASE)
+          if "## API Changes" in content and not proto_blocks:
+              errors.append(f"{fname}: API Changes section missing proto schema definitions")
+      return (len(errors) == 0, "; ".join(errors) if errors else f"All designs have proto schemas")
+
+  - name: tenant_isolation_check
+    description: Verify design addresses tenant isolation for new resources
+    check: |
+      files = outputs.get("files", {})
+      designs = {k: v for k, v in files.items() if k.startswith("artifacts/design-tasks/") and k.endswith(".md") and not k.endswith("-source.md")}
+      if not designs:
+          return (False, "No design task files found")
+      errors = []
+      for fname, content in sorted(designs.items()):
+          # If the design adds new CRDs or resources, check for tenant isolation discussion
+          if "message" in content.lower() or "resource" in content.lower():
+              if "tenant" not in content.lower():
+                  errors.append(f"{fname}: New resources without tenant isolation discussion")
+      return (len(errors) == 0, "; ".join(errors[:5]) if errors else "Tenant isolation addressed")
+
+  - name: test_plan_valid
+    description: Verify design includes concrete test plan with unit and integration tests
+    check: |
+      import re
+      files = outputs.get("files", {})
+      designs = {k: v for k, v in files.items() if k.startswith("artifacts/design-tasks/") and k.endswith(".md") and not k.endswith("-source.md")}
+      if not designs:
+          return (False, "No design task files found")
+      errors = []
+      for fname, content in sorted(designs.items()):
+          test_plan_section = re.search(r'## Test Plan.*?(?=##|$)', content, re.DOTALL)
+          if not test_plan_section:
+              errors.append(f"{fname}: missing Test Plan section")
+              continue
+          plan_text = test_plan_section.group(0)
+          if "unit test" not in plan_text.lower() and "integration test" not in plan_text.lower():
+              errors.append(f"{fname}: Test Plan missing unit or integration test details")
+      return (len(errors) == 0, "; ".join(errors[:5]) if errors else "All test plans valid")
+
+  - name: no_placeholders
+    description: Check design doesn't contain placeholder content
+    check: |
+      import re
+      files = outputs.get("files", {})
+      designs = {k: v for k, v in files.items() if k.startswith("artifacts/design-tasks/") and k.endswith(".md") and not k.endswith("-source.md")}
+      if not designs:
+          return (False, "No design task files found")
+      errors = []
+      placeholder_patterns = [
+          r'\bTBD\b',
+          r'\bTODO\b',
+          r'\[.*?\]\(#\)',
+          r'XXX',
+          r'FIXME',
+          r'<insert.*?>',
+      ]
+      for fname, content in sorted(designs.items()):
+          for pattern in placeholder_patterns:
+              matches = re.findall(pattern, content, re.IGNORECASE)
+              if matches:
+                  errors.append(f"{fname}: contains placeholders ({pattern})")
+                  break
+      return (len(errors) == 0, "; ".join(errors[:5]) if errors else "No placeholders detected")
+
+  - name: review_exists
+    description: Verify a review file was produced for each design
+    check: |
+      files = outputs.get("files", {})
+      designs = [k for k in files if k.startswith("artifacts/design-tasks/") and k.endswith(".md") and not k.endswith("-source.md")]
+      reviews = [k for k in files if k.startswith("artifacts/design-reviews/") and k.endswith("-review.md")]
+      if not designs:
+          return (False, "No design files found")
+      if not reviews:
+          return (False, "No review files found")
+      return (True, f"{len(designs)} designs, {len(reviews)} reviews")
+
+  - name: frontmatter_valid
+    description: Verify review files have valid YAML frontmatter with required fields
+    check: |
+      import yaml
+      files = outputs.get("files", {})
+      reviews = {k: v for k, v in files.items() if k.endswith("-review.md")}
+      if not reviews:
+          return (False, "No review files to check")
+      errors = []
+      for fname, content in sorted(reviews.items()):
+          parts = content.split('---', 2)
+          if len(parts) < 3:
+              errors.append(f"{fname}: missing frontmatter")
+              continue
+          try:
+              fm = yaml.safe_load(parts[1])
+          except yaml.YAMLError as e:
+              errors.append(f"{fname}: invalid YAML: {e}")
+              continue
+          for req in ['design_id', 'score', 'pass', 'recommendation']:
+              if req not in fm:
+                  errors.append(f"{fname}: missing {req}")
+          score = fm.get('score')
+          if score is not None and not (0 <= score <= 8):
+              errors.append(f"{fname}: score {score} out of range (should be 0-8)")
+      return (len(errors) == 0, "; ".join(errors[:5]) if errors else f"{len(reviews)} reviews valid")
+
+  - name: length_check
+    description: Verify design length is appropriate (200-800 lines)
+    check: |
+      files = outputs.get("files", {})
+      designs = {k: v for k, v in files.items() if k.startswith("artifacts/design-tasks/") and k.endswith(".md") and not k.endswith("-source.md")}
+      if not designs:
+          return (False, "No design task files found")
+      errors = []
+      for fname, content in sorted(designs.items()):
+          lines = len([l for l in content.split("\n") if l.strip()])
+          if lines < 200:
+              errors.append(f"{fname}: too short ({lines} lines, expected 200-800)")
+          elif lines > 800:
+              errors.append(f"{fname}: too long ({lines} lines, expected 200-800)")
+      return (len(errors) == 0, "; ".join(errors[:5]) if errors else "All designs appropriately sized")
+
+  # --- LLM judges ---
+
+  - name: design_quality
+    description: |
+      Assess the quality of the generated design against OSAC standards and the
+      gold-standard merged design.
+    prompt: |
+      You are an independent evaluator assessing the quality of an automatically
+      generated OSAC design document.
+
+      Here are the produced artifacts:
+
+      {{ outputs }}
+
+      The test case annotations (including expected quality) are:
+
+      {{ annotations }}
+
+      If a gold-standard design (gold-design.md) is available in the test case, compare
+      the generated design against it.
+
+      Assess design quality across these criteria, then provide a single score 1-5:
+
+      **Quality criteria** (the design should):
+      - Have clear, specific Goals linked to PRD user stories
+      - Include complete proto schema definitions in API Changes
+      - Address tenant isolation for new resources
+      - Have detailed Implementation section covering all components
+      - Include concrete Test Plan with unit and integration tests
+      - Consider meaningful Alternatives with pros/cons
+      - Be appropriately sized (200-800 lines)
+
+      **Comparison with gold design** (if available):
+      - Does the generated design cover the same scope?
+      - Are proto schemas comparable in completeness?
+      - Is the implementation detail level similar?
+      - Is the test coverage plan comparable?
+
+      Score 1-5:
+      - **5**: Comparable to gold design — all criteria strong, minimal differences
+      - **4**: Good — covers most of the gold design's scope with minor gaps
+      - **3**: Adequate — covers core scope but missing important details
+      - **2**: Below standard — significant gaps vs gold design
+      - **1**: Poor — fundamentally different scope or quality
+
+  - name: architectural_soundness
+    description: |
+      Assess whether the design follows OSAC architectural patterns.
+    prompt: |
+      You are an independent evaluator assessing the architectural soundness of an
+      automatically generated OSAC design document.
+
+      Here are the produced artifacts:
+
+      {{ outputs }}
+
+      Evaluate whether the design follows OSAC patterns:
+
+      **Multi-tenancy:**
+      - Does it address tenant isolation for new resources?
+      - Are tenant annotations (`osac.openshift.io/tenant`, `osac.openshift.io/owner-reference`) mentioned?
+
+      **API design:**
+      - Do proto schemas follow Kubernetes API conventions (TypeMeta, ObjectMeta, Spec, Status)?
+      - Are field names snake_case?
+      - Are enums used appropriately?
+
+      **Resource hierarchy:**
+      - Does it respect parent-child relationships via owner references?
+      - Are cross-resource references handled correctly?
+
+      **Integration:**
+      - Does it consider the fulfillment-service, osac-operator, osac-aap stack?
+      - Are component responsibilities clear?
+
+      Score 1-5:
+      - **5**: Excellent architectural alignment
+      - **4**: Good alignment, minor gaps
+      - **3**: Adequate, some pattern violations
+      - **2**: Significant architectural issues
+      - **1**: Poor architectural fit
+
+  - name: proto_schema_quality
+    description: |
+      Assess the quality and completeness of proto schema definitions.
+    prompt: |
+      You are an independent evaluator assessing the proto schema quality in an
+      automatically generated OSAC design document.
+
+      Here are the produced artifacts:
+
+      {{ outputs }}
+
+      Evaluate the proto schemas in the API Changes section:
+
+      **Completeness:**
+      - Are all new messages defined?
+      - Do messages include TypeMeta, ObjectMeta, Spec, Status where appropriate?
+      - Are all referenced types defined or standard?
+
+      **Field design:**
+      - Are field names snake_case?
+      - Are field types appropriate (enums vs strings, references vs inline)?
+      - Are optional vs required fields clear?
+
+      **Documentation:**
+      - Are field comments present and meaningful?
+      - Are enum values documented?
+
+      **Comparison with gold** (if available):
+      - Are the same fields present?
+      - Is the schema structure comparable?
+
+      Score 1-5:
+      - **5**: Complete, well-designed schemas
+      - **4**: Good schemas, minor gaps
+      - **3**: Adequate schemas, some issues
+      - **2**: Incomplete or poorly designed schemas
+      - **1**: Missing or fundamentally flawed schemas
+
+  - name: test_plan_quality
+    description: |
+      Assess the quality and completeness of the test plan.
+    prompt: |
+      You are an independent evaluator assessing the test plan quality in an
+      automatically generated OSAC design document.
+
+      Here are the produced artifacts:
+
+      {{ outputs }}
+
+      Evaluate the Test Plan section:
+
+      **Coverage:**
+      - Does it include unit tests?
+      - Does it include integration tests?
+      - Does it cover edge cases and error handling?
+
+      **Specificity:**
+      - Are test scenarios concrete (not generic "test X works")?
+      - Are test inputs and expected outputs clear?
+
+      **Tooling:**
+      - Does it mention appropriate test frameworks (Ginkgo, pytest)?
+      - Does it consider E2E testing where appropriate?
+
+      **Comparison with gold** (if available):
+      - Is the test coverage comparable?
+      - Are similar scenarios covered?
+
+      Score 1-5:
+      - **5**: Comprehensive, concrete test plan
+      - **4**: Good test plan, minor gaps
+      - **3**: Adequate test plan, some vagueness
+      - **2**: Incomplete or generic test plan
+      - **1**: Missing or poor test plan
+
+  - name: pairwise_vs_gold
+    description: |
+      Blind pairwise comparison of generated design vs the gold-standard merged design.
+    prompt: |
+      You are comparing two OSAC design documents for the same feature. One was written by a
+      human (possibly AI-assisted) and merged after review. The other was generated
+      autonomously.
+
+      Both designs should follow the OSAC template:
+      - Goals
+      - Proposal
+      - API Changes (proto schemas)
+      - Implementation
+      - Test Plan
+      - Alternatives
+
+      Here are the artifacts:
+
+      {{ outputs }}
+
+      The gold-standard design is in the test case as gold-design.md.
+
+      Compare the two designs blind (don't assume the gold is better):
+
+      1. **Completeness**: Which covers the feature scope more thoroughly?
+      2. **API design**: Which has better proto schemas?
+      3. **Implementation detail**: Which is clearer on how to build it?
+      4. **Test coverage**: Which has a better test plan?
+      5. **Architectural fit**: Which better aligns with OSAC patterns?
+
+      Verdict: "A is better", "B is better", or "Tie"
+      Score 1-5 for the generated design (not the gold):
+      - **5**: Generated design is equal or better than gold
+      - **4**: Generated design is slightly worse but comparable
+      - **3**: Generated design is noticeably worse
+      - **2**: Generated design is significantly worse
+      - **1**: Generated design is fundamentally different/inferior
+
+thresholds:
+  structure_valid:
+    min_pass_rate: 1.0
+  proto_schema_valid:
+    min_pass_rate: 0.9
+  tenant_isolation_check:
+    min_pass_rate: 0.8
+  test_plan_valid:
+    min_pass_rate: 0.9
+  no_placeholders:
+    min_pass_rate: 0.95
+  review_exists:
+    min_pass_rate: 1.0
+  frontmatter_valid:
+    min_pass_rate: 1.0
+  length_check:
+    min_pass_rate: 0.9
+  design_quality:
+    min_mean: 3.5
+  architectural_soundness:
+    min_mean: 3.5
+  proto_schema_quality:
+    min_mean: 3.0
+  test_plan_quality:
+    min_mean: 3.0
+  pairwise_vs_gold:
+    min_mean: 3.0
