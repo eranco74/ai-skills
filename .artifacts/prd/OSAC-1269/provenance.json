@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "workflow": "prd",
+  "document": "03-prd.md",
+  "events": [
+    {
+      "phase": "draft",
+      "authoring_mode": "skill",
+      "timestamp": "2026-07-24T21:20:53+00:00",
+      "workflow_version": "0.6.0",
+      "ai_workflows": "139e6c1",
+      "source_repo": "4832263",
+      "source_repo_branch": "master"
+    }
+  ],
+  "drift": {
+    "context_changed": false,
+    "first_event_index": 0,
+    "last_event_index": 0,
+    "changed_fields": []
+  }
+}

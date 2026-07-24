@@ -157,10 +157,11 @@ def score_case(case: dict, prd_path: str) -> dict:
         if len(parts) >= 3:
             try:
                 fm = yaml.safe_load(parts[1])
-                result["review_score"] = fm.get("score")
-                result["review_pass"] = fm.get("pass")
-                result["review_recommendation"] = fm.get("recommendation")
-                result["review_scores"] = fm.get("scores", {})
+                if fm and isinstance(fm, dict):
+                    result["review_score"] = fm.get("score")
+                    result["review_pass"] = fm.get("pass")
+                    result["review_recommendation"] = fm.get("recommendation")
+                    result["review_scores"] = fm.get("scores", {})
             except yaml.YAMLError:
                 pass
 
