@@ -43,6 +43,11 @@ Read ALL of these before writing.
    services in metadata, personas in User Stories, cross-cutting dimensions
    in In Scope / Out of Scope. The dimensions context is a completeness
    checklist, not a section to copy.
+10. **Add source markers sparingly.** Follow the consolidation rule: since most
+    requirements trace to the primary Jira feature, don't tag every statement.
+    Only add `[Jira: {KEY}]` when a requirement comes from a non-obvious source
+    (linked issue, Jira comment). Add `[Assumption]` markers for any requirement
+    not directly stated in the Jira source.
 6. **Scope tightly.** One PRD = one coherent feature. If the Jira feature bundles
    independent capabilities, note them but write the PRD for the core capability.
 7. **No design leakage smell tests:**
@@ -182,6 +187,16 @@ Set frontmatter:
 python3 scripts/frontmatter.py set artifacts/prd-tasks/{JIRA_KEY}.md \
     prd_id={JIRA_KEY} title="{title}" jira_key={JIRA_KEY} status=Draft
 ```
+
+### Step 5a: Capture Provenance
+
+Bridge artifacts and capture provenance:
+```bash
+python3 scripts/bridge_artifacts.py {JIRA_KEY}
+```
+
+This copies the PRD into the ai-workflows artifact layout and records
+a provenance event for the `draft` phase.
 
 ### Patterns from Top-Scoring PRDs
 

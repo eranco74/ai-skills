@@ -82,6 +82,13 @@ python3 scripts/frontmatter.py set artifacts/prd-reviews/{PRD_ID}-review.md \
     auto_revised=true
 ```
 
+### Step 4a: Capture Provenance
+
+```bash
+python3 /home/ercohen/.ai-workflows/_shared/scripts/provenance.py capture \
+    --workflow prd --issue {PRD_ID} --phase respond --authoring-mode skill
+```
+
 ### Step 5: Verify No Regression
 
 After revision, quickly re-check:
