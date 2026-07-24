@@ -31,7 +31,7 @@
       "check-proto": {
         "pass": true,
         "has_proto": true,
-        "proto_count": 2
+        "proto_count": 4
       },
       "check-tenant-isolation": {
         "pass": true,
@@ -43,7 +43,7 @@
       },
       "check-length": {
         "pass": true,
-        "lines": 372,
+        "lines": 440,
         "issues": []
       }
     },
@@ -54,11 +54,11 @@
       "extra_sections": [],
       "gen_has_proto": true,
       "gold_has_proto": true,
-      "gen_proto_msgs": 8,
+      "gen_proto_msgs": 10,
       "gold_proto_msgs": 8,
-      "proto_coverage": 1.0,
-      "length_ratio": 1.16,
-      "gen_lines": 372,
+      "proto_coverage": 1.25,
+      "length_ratio": 1.37,
+      "gen_lines": 440,
       "gold_lines": 321
     },
     "review_score": 8,

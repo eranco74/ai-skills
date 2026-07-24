@@ -1,6 +1,6 @@
 # Design Creator Evaluation Report — Iteration 3
 
-**Date:** 2026-07-24 07:10:36 UTC
+**Date:** 2026-07-24 07:21:03 UTC
 **Cases:** 3
 
 ## Summary
@@ -19,7 +19,7 @@
 - **Test plan pass rate:** 0/3 (0%)
 - **Length check pass rate:** 3/3 (100%)
 - **Avg gold section overlap:** 100% (across 3 cases)
-- **Avg proto coverage vs gold:** 267% (across 3 cases)
+- **Avg proto coverage vs gold:** 275% (across 3 cases)
 - **Avg review score:** 8.0/8
 - **Review pass rate (>=5/8):** 1/1 (100%)
 
@@ -34,8 +34,8 @@
 - **check-length:** PASS
 - **Gold comparison:**
   - Section overlap: 100%
-  - Proto coverage: 100% (8 msgs vs 8 in gold)
-  - Length: 372 lines (gold: 321)
+  - Proto coverage: 125% (10 msgs vs 8 in gold)
+  - Length: 440 lines (gold: 321)
 - **Review scores:** {'architecture': 2, 'feasibility': 2, 'scope': 2, 'testability': 2}
 
 ### case-005-osac-1332-cluster-storage — CaaS Cluster Storage
