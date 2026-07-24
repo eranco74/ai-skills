@@ -1,0 +1,150 @@
+[
+  {
+    "case_id": "case-004-osac-1269-cluster-version",
+    "jira_key": "OSAC-1269",
+    "title": "ClusterVersion API",
+    "expected_score": 6,
+    "design_exists": true,
+    "checks": {
+      "check-structure": {
+        "pass": true,
+        "issues": [],
+        "missing_sections": [],
+        "present_sections": [
+          "Summary",
+          "Motivation",
+          "Proposal",
+          "Security Considerations",
+          "Failure Handling and Recovery",
+          "RBAC / Tenancy",
+          "Observability and Monitoring",
+          "Risks and Mitigations",
+          "Drawbacks",
+          "Alternatives (Not Implemented)",
+          "Test Plan",
+          "Graduation Criteria",
+          "Upgrade / Downgrade Strategy",
+          "Version Skew Strategy",
+          "Support Procedures"
+        ]
+      },
+      "check-proto": {
+        "pass": true,
+        "has_proto": true,
+        "proto_count": 5
+      },
+      "check-tenant-isolation": {
+        "pass": true,
+        "issues": []
+      },
+      "check-placeholders": {
+        "pass": true,
+        "placeholder_sections": []
+      },
+      "check-length": {
+        "pass": true,
+        "lines": 383,
+        "issues": []
+      }
+    },
+    "checks_pass": true,
+    "gold_comparison": {
+      "section_overlap": 1.0,
+      "missing_sections": [],
+      "extra_sections": [],
+      "gen_has_proto": true,
+      "gold_has_proto": true,
+      "gen_proto_msgs": 9,
+      "gold_proto_msgs": 8,
+      "proto_coverage": 1.125,
+      "length_ratio": 1.19,
+      "gen_lines": 383,
+      "gold_lines": 321
+    },
+    "review_score": 8,
+    "review_pass": true,
+    "review_recommendation": "submit",
+    "review_scores": {
+      "architecture": 2,
+      "feasibility": 2,
+      "scope": 2,
+      "testability": 2
+    }
+  },
+  {
+    "case_id": "case-005-osac-1332-cluster-storage",
+    "jira_key": "OSAC-1332",
+    "title": "CaaS Cluster Storage",
+    "expected_score": 6,
+    "design_exists": true,
+    "checks": {
+      "check-structure": {
+        "pass": true,
+        "issues": [],
+        "missing_sections": [],
+        "present_sections": [
+          "Summary",
+          "Motivation",
+          "Proposal",
+          "Security Considerations",
+          "Failure Handling and Recovery",
+          "RBAC / Tenancy",
+          "Observability and Monitoring",
+          "Risks and Mitigations",
+          "Drawbacks",
+          "Alternatives (Not Implemented)",
+          "Test Plan",
+          "Graduation Criteria",
+          "Upgrade / Downgrade Strategy",
+          "Version Skew Strategy",
+          "Support Procedures"
+        ]
+      },
+      "check-proto": {
+        "pass": false,
+        "has_proto": false,
+        "proto_count": 0
+      },
+      "check-tenant-isolation": {
+        "pass": true,
+        "issues": []
+      },
+      "check-placeholders": {
+        "pass": true,
+        "placeholder_sections": []
+      },
+      "check-length": {
+        "pass": true,
+        "lines": 346,
+        "issues": []
+      }
+    },
+    "checks_pass": false,
+    "gold_comparison": {
+      "section_overlap": 1.0,
+      "missing_sections": [],
+      "extra_sections": [
+        "cross-cutting dimensions",
+        "open questions"
+      ],
+      "gen_has_proto": false,
+      "gold_has_proto": false,
+      "gen_proto_msgs": 2,
+      "gold_proto_msgs": 0,
+      "proto_coverage": 1.0,
+      "length_ratio": 1.44,
+      "gen_lines": 346,
+      "gold_lines": 241
+    },
+    "review_score": null,
+    "review_pass": null,
+    "review_recommendation": null,
+    "review_scores": {
+      "architecture": 2,
+      "feasibility": 2,
+      "scope": 2,
+      "testability": 1,
+      "total": 7
+    }
+  }
+]

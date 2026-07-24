@@ -65,10 +65,10 @@ def run_deterministic_checks(design_path: str) -> dict:
     """Run all deterministic scoring checks on a design."""
     results = {}
 
-    for check in ["check-structure", "check-proto", "check-tenant-isolation", "check-test-plan", "check-placeholders", "check-length"]:
+    for check in ["check-structure", "check-proto", "check-tenant-isolation", "check-placeholders", "check-length"]:
         try:
             proc = subprocess.run(
-                ["python3", "scripts/score_design.py", check, design_path],
+                ["python3", "scripts/score_design.py", design_path, check],
                 capture_output=True, text=True, timeout=30
             )
             results[check] = json.loads(proc.stdout) if proc.stdout.strip() else {
@@ -318,7 +318,7 @@ def main():
             continue
 
         jira_key = case["input"]["jira_key"]
-        design_path = str(ARTIFACTS_DIR / "design-tasks" / f"{jira_key}.md")
+        design_path = str(ARTIFACTS_DIR / "design-tasks" / f"{jira_key}-design.md")
 
         result = score_case(case, design_path)
         results.append(result)

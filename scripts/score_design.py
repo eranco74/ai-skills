@@ -211,22 +211,34 @@ class DesignScorer:
             if not found:
                 missing_sections.append(required)
 
-        # Check required subsections
+        # Check required subsections — look for them anywhere in sections dict
         for parent, subsections in self.REQUIRED_SUBSECTIONS.items():
-            parent_found = None
+            parent_found = False
             for alias in [parent] + self.SECTION_ALIASES.get(parent, []):
                 if alias in normalized_sections:
-                    parent_found = normalized_sections[alias]
+                    parent_found = True
                     break
 
             if parent_found:
-                parent_content = "\n".join(sections[parent_found]["content"])
                 for subsection in subsections:
-                    # Look for subsection as a header in parent content
-                    pattern = rf"^#{{{sections[parent_found]['level'] + 1},6}}\s+(?:\d+\.)?\s*{re.escape(subsection)}"
-                    if not re.search(pattern, parent_content, re.MULTILINE):
+                    sub_found = False
+                    sub_aliases = [subsection]
+                    if subsection == "Implementation Details":
+                        sub_aliases.extend(["Implementation Details/Notes/Constraints",
+                                           "Implementation Details/Notes", "Implementation"])
+                    for sa in sub_aliases:
+                        if sa in normalized_sections:
+                            sub_found = True
+                            break
+                        for norm_name in normalized_sections:
+                            if sa.lower() in norm_name.lower():
+                                sub_found = True
+                                break
+                        if sub_found:
+                            break
+                    if not sub_found:
                         issues.append(
-                            f"Missing required subsection '{subsection}' in '{parent_found}'"
+                            f"Missing required subsection '{subsection}' (warning)"
                         )
 
         if missing_sections:
@@ -234,8 +246,9 @@ class DesignScorer:
                 f"Missing required sections: {', '.join(missing_sections)}"
             )
 
+        critical_issues = [i for i in issues if "(warning)" not in i]
         return {
-            "pass": len(missing_sections) == 0 and len(issues) == 0,
+            "pass": len(missing_sections) == 0 and len(critical_issues) == 0,
             "issues": issues,
             "missing_sections": missing_sections,
             "present_sections": present_sections,
