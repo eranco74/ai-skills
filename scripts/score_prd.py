@@ -204,6 +204,45 @@ def check_leakage(prd_path: str) -> Dict[str, Any]:
     return result
 
 
+def check_duplicates(prd_path: str) -> Dict[str, Any]:
+    """Detect near-duplicate user stories across persona sections."""
+    content = read_markdown(prd_path)
+    stories = re.findall(r'As a [^,]+, I want .+? so that .+?\.', content)
+    if len(stories) < 2:
+        return {"pass": True, "issues": []}
+
+    duplicates = []
+    for i in range(len(stories)):
+        norm_a = re.sub(r'As a [^,]+,', 'As a PERSONA,', stories[i]).lower()
+        words_a = set(norm_a.split())
+        for j in range(i + 1, len(stories)):
+            norm_b = re.sub(r'As a [^,]+,', 'As a PERSONA,', stories[j]).lower()
+            words_b = set(norm_b.split())
+            overlap = len(words_a & words_b) / max(len(words_a | words_b), 1)
+            if overlap > 0.8:
+                duplicates.append(
+                    f"Near-duplicate stories: '{stories[i][:60]}...' and '{stories[j][:60]}...'"
+                )
+
+    result = {"pass": len(duplicates) == 0, "issues": duplicates}
+    print(json.dumps(result, indent=2))
+    return result
+
+
+def check_length(prd_path: str) -> Dict[str, Any]:
+    """Check PRD is within target length range."""
+    content = read_markdown(prd_path)
+    non_blank = len([l for l in content.split("\n") if l.strip()])
+    issues = []
+    if non_blank > 120:
+        issues.append(f"PRD has {non_blank} non-blank lines (target: 40-80). Consider trimming.")
+    elif non_blank < 25:
+        issues.append(f"PRD has {non_blank} non-blank lines (target: 40-80). May be too sparse.")
+    result = {"pass": 25 <= non_blank <= 120, "issues": issues}
+    print(json.dumps(result, indent=2))
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description="Deterministic scoring utilities for PRD validation")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -217,16 +256,24 @@ def main():
     leakage_parser = subparsers.add_parser("check-leakage", help="Check for design leakage keywords")
     leakage_parser.add_argument("prd_file", help="Path to PRD markdown file")
 
+    dup_parser = subparsers.add_parser("check-duplicates", help="Detect near-duplicate user stories")
+    dup_parser.add_argument("prd_file", help="Path to PRD markdown file")
+
+    len_parser = subparsers.add_parser("check-length", help="Check PRD length is within range")
+    len_parser.add_argument("prd_file", help="Path to PRD markdown file")
+
     args = parser.parse_args()
 
-    if args.command == "check-structure":
-        result = check_structure(args.prd_file)
-        sys.exit(0 if result["pass"] else 1)
-    elif args.command == "check-personas":
-        result = check_personas(args.prd_file)
-        sys.exit(0 if result["pass"] else 1)
-    elif args.command == "check-leakage":
-        result = check_leakage(args.prd_file)
+    checks = {
+        "check-structure": check_structure,
+        "check-personas": check_personas,
+        "check-leakage": check_leakage,
+        "check-duplicates": check_duplicates,
+        "check-length": check_length,
+    }
+    fn = checks.get(args.command)
+    if fn:
+        result = fn(args.prd_file)
         sys.exit(0 if result["pass"] else 1)
 
 

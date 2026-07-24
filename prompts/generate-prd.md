@@ -33,6 +33,16 @@ Read ALL of these before writing.
    Do not repeat information across sections.
 7. **Derive Author from Jira.** Use the Jira assignee or reporter name — never
    "PRD Generator" or "TBD" for the Author field.
+8. **Preserve technology constraints from Jira.** If the Jira source names a
+   specific technology standard or compatibility target (e.g., "Vault-compatible
+   API," "OCI artifact," "VAST backend"), preserve it in the PRD. These are
+   requirement constraints, not design leakage — they tell the design phase
+   which API surface to target. Do not abstract away meaningful specificity.
+9. **No OSAC Dimensions section.** Do NOT create a separate "OSAC Dimensions"
+   section. Instead, weave dimensional information into existing sections:
+   services in metadata, personas in User Stories, cross-cutting dimensions
+   in In Scope / Out of Scope. The dimensions context is a completeness
+   checklist, not a section to copy.
 6. **Scope tightly.** One PRD = one coherent feature. If the Jira feature bundles
    independent capabilities, note them but write the PRD for the core capability.
 7. **No design leakage smell tests:**
@@ -184,7 +194,15 @@ python3 scripts/frontmatter.py set artifacts/prd-tasks/{JIRA_KEY}.md \
 - Out of Scope contains 8-15 items at the feature boundary — items closely related
   but deferred. NOT distant, unrelated capabilities that nobody would expect.
 - When two personas have identical capabilities, they are combined under one heading
-  (e.g., "### Tenant Admin/User") with a note explaining they share the same scope
+  (e.g., "### Tenant Admin/User") with a note explaining they share the same scope.
+  **Combined persona test:** Before writing separate Tenant Admin and Tenant User
+  sections, ask: "Does the Tenant Admin have any capability in this feature that
+  the Tenant User does not?" If no, combine them. The gold-standard PRDs for
+  OSAC-1332 and OSAC-2872 both use this pattern.
+- Out of Scope items pass the **boundary proximity test**: for each item, ask
+  "Would a reviewer plausibly ask 'is this included?'" If not, the item is too
+  distant. GOOD: "Volume resize" for a storage feature. BAD: "Cross-region
+  storage replication" for a first-iteration cluster storage feature.
 - User stories cover 3-4 personas with concrete scenarios
 - Acceptance criteria (when present in Jira) are included as a checkbox section
 - Dependencies name specific capabilities needed, not just Jira keys
