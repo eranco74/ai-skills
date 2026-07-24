@@ -37,6 +37,14 @@ provisioning workflows. The PRD describes WHAT and WHY (user stories, scope).
 10. **Add source markers.** Use `[PRD: In Scope item N]` or `[PRD: User Story: {persona}]`
     to trace design decisions to PRD requirements. Use `[Assumption]` for unverified
     decisions. Use `[Codebase: {path}]` when referencing existing code patterns.
+11. **Stack-aware error format.** OSAC uses gRPC error codes, not HTTP status
+    codes. Use `INVALID_ARGUMENT`, `NOT_FOUND`, `ALREADY_EXISTS`,
+    `FAILED_PRECONDITION`, `ABORTED` — not 400/404/409. For database triggers,
+    use PostgreSQL SQLSTATE codes (Z0001=immutable, Z0002=reference,
+    Z0003=in-use). Map SQLSTATE → gRPC in the `translateError` function.
+12. **Honest constraints.** An uncertain constraint is an assumption. If you're
+    not sure whether a behavior is required, mark it `[Assumption]` and flag
+    in the Open Questions section. Don't present uncertainty as fact.
 
 ## Process
 
@@ -259,6 +267,27 @@ Before saving, verify:
 - [ ] Integration tests describe scenarios with infrastructure
 - [ ] E2E tests describe user-facing workflows
 - [ ] Graduation criteria are measurable
+
+**Anti-pattern checks:**
+- [ ] **Be Specific** — no "handle appropriately" or "implement as needed"
+- [ ] **Measurable** — risks have concrete mitigations, not "monitor closely"
+- [ ] **Honest Constraints** — uncertain constraints are `[Assumption]`, not facts
+- [ ] **No Scope Creep** — only design what the PRD requires
+- [ ] **Right-Sized** — output depth proportional to feature complexity
+
+## Size Calibration
+
+Match output depth to feature complexity:
+
+- **Simple feature** (single resource, no controller changes): 200-350 lines.
+  Test plan can be brief. Alternatives: 1-2 options.
+- **Medium feature** (new resource + controller + AAP integration): 350-500 lines.
+  Full proto schemas, workflow diagrams, detailed test plan.
+- **Complex feature** (multi-service, new auth model, external integration): 500-700 lines.
+  Mermaid diagrams, extensive failure handling, multiple alternatives.
+
+If your design is significantly longer than a gold-standard design for a
+comparable feature, trim non-essential subsections rather than padding.
 
 ### Step 6: Write Artifact
 
