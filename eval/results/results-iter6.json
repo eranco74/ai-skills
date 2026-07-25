@@ -1,0 +1,437 @@
+[
+  {
+    "case_id": "case-001-osac-1567-secret-management",
+    "jira_key": "OSAC-1567",
+    "title": "Secret Management",
+    "expected_score": 7,
+    "design_exists": true,
+    "checks": {
+      "check-structure": {
+        "pass": true,
+        "issues": [],
+        "missing_sections": [],
+        "present_sections": [
+          "Summary",
+          "Motivation",
+          "Proposal",
+          "Security Considerations",
+          "Failure Handling and Recovery",
+          "RBAC / Tenancy",
+          "Observability and Monitoring",
+          "Risks and Mitigations",
+          "Drawbacks",
+          "Alternatives (Not Implemented)",
+          "Test Plan",
+          "Graduation Criteria",
+          "Upgrade / Downgrade Strategy",
+          "Version Skew Strategy",
+          "Support Procedures"
+        ]
+      },
+      "check-proto": {
+        "pass": true,
+        "design_type": "backend",
+        "has_proto": true,
+        "proto_count": 2
+      },
+      "check-tenant-isolation": {
+        "pass": true,
+        "design_type": "backend",
+        "method": "prose",
+        "issues": [
+          "Tenant isolation discussed in prose but missing literal annotation strings (warning)"
+        ]
+      },
+      "check-placeholders": {
+        "pass": true,
+        "placeholder_sections": []
+      },
+      "check-length": {
+        "pass": true,
+        "lines": 669,
+        "issues": []
+      }
+    },
+    "checks_pass": true,
+    "gold_comparison": {
+      "section_overlap": 1.0,
+      "missing_sections": [],
+      "extra_sections": [
+        "ux alignment"
+      ],
+      "gen_has_proto": true,
+      "gold_has_proto": true,
+      "gen_proto_msgs": 12,
+      "gold_proto_msgs": 2,
+      "proto_coverage": 6.0,
+      "length_ratio": 0.91,
+      "gen_lines": 669,
+      "gold_lines": 734
+    }
+  },
+  {
+    "case_id": "case-002-osac-1425-networking-ui",
+    "jira_key": "OSAC-1425",
+    "title": "OSAC Tenant UI: Networking Section",
+    "expected_score": 7,
+    "design_exists": true,
+    "checks": {
+      "check-structure": {
+        "pass": true,
+        "issues": [],
+        "missing_sections": [],
+        "present_sections": [
+          "Summary",
+          "Motivation",
+          "Proposal",
+          "Security Considerations",
+          "Failure Handling and Recovery",
+          "RBAC / Tenancy",
+          "Observability and Monitoring",
+          "Risks and Mitigations",
+          "Drawbacks",
+          "Alternatives (Not Implemented)",
+          "Test Plan",
+          "Graduation Criteria",
+          "Upgrade / Downgrade Strategy",
+          "Version Skew Strategy",
+          "Support Procedures"
+        ]
+      },
+      "check-proto": {
+        "pass": true,
+        "design_type": "ui",
+        "has_proto": false,
+        "proto_count": 0,
+        "has_typescript": true,
+        "ts_count": 5
+      },
+      "check-tenant-isolation": {
+        "pass": true,
+        "design_type": "ui",
+        "issues": []
+      },
+      "check-placeholders": {
+        "pass": true,
+        "placeholder_sections": []
+      },
+      "check-length": {
+        "pass": true,
+        "lines": 537,
+        "issues": []
+      }
+    },
+    "checks_pass": true,
+    "gold_comparison": {
+      "section_overlap": 1.0,
+      "missing_sections": [],
+      "extra_sections": [],
+      "gen_has_proto": false,
+      "gold_has_proto": false,
+      "gen_proto_msgs": 2,
+      "gold_proto_msgs": 2,
+      "proto_coverage": 1.0,
+      "length_ratio": 0.81,
+      "gen_lines": 537,
+      "gold_lines": 666
+    }
+  },
+  {
+    "case_id": "case-003-osac-1110-storage-tier",
+    "jira_key": "OSAC-1110",
+    "title": "StorageTier API",
+    "expected_score": 7,
+    "design_exists": true,
+    "checks": {
+      "check-structure": {
+        "pass": true,
+        "issues": [],
+        "missing_sections": [],
+        "present_sections": [
+          "Summary",
+          "Motivation",
+          "Proposal",
+          "Security Considerations",
+          "Failure Handling and Recovery",
+          "RBAC / Tenancy",
+          "Observability and Monitoring",
+          "Risks and Mitigations",
+          "Drawbacks",
+          "Alternatives (Not Implemented)",
+          "Test Plan",
+          "Graduation Criteria",
+          "Upgrade / Downgrade Strategy",
+          "Version Skew Strategy",
+          "Support Procedures"
+        ]
+      },
+      "check-proto": {
+        "pass": true,
+        "design_type": "backend",
+        "has_proto": true,
+        "proto_count": 2
+      },
+      "check-tenant-isolation": {
+        "pass": true,
+        "design_type": "backend",
+        "method": "annotations",
+        "issues": []
+      },
+      "check-placeholders": {
+        "pass": true,
+        "placeholder_sections": []
+      },
+      "check-length": {
+        "pass": true,
+        "lines": 413,
+        "issues": []
+      }
+    },
+    "checks_pass": true,
+    "gold_comparison": {
+      "section_overlap": 1.0,
+      "missing_sections": [],
+      "extra_sections": [
+        "ux alignment"
+      ],
+      "gen_has_proto": true,
+      "gold_has_proto": true,
+      "gen_proto_msgs": 5,
+      "gold_proto_msgs": 3,
+      "proto_coverage": 1.6666666666666667,
+      "length_ratio": 1.02,
+      "gen_lines": 413,
+      "gold_lines": 405
+    }
+  },
+  {
+    "case_id": "case-004-osac-1269-cluster-version",
+    "jira_key": "OSAC-1269",
+    "title": "ClusterVersion API",
+    "expected_score": 6,
+    "design_exists": true,
+    "checks": {
+      "check-structure": {
+        "pass": true,
+        "issues": [],
+        "missing_sections": [],
+        "present_sections": [
+          "Summary",
+          "Motivation",
+          "Proposal",
+          "Security Considerations",
+          "Failure Handling and Recovery",
+          "RBAC / Tenancy",
+          "Observability and Monitoring",
+          "Risks and Mitigations",
+          "Drawbacks",
+          "Alternatives (Not Implemented)",
+          "Test Plan",
+          "Graduation Criteria",
+          "Upgrade / Downgrade Strategy",
+          "Version Skew Strategy",
+          "Support Procedures"
+        ]
+      },
+      "check-proto": {
+        "pass": true,
+        "design_type": "backend",
+        "has_proto": true,
+        "proto_count": 4
+      },
+      "check-tenant-isolation": {
+        "pass": true,
+        "design_type": "backend",
+        "method": "annotations",
+        "issues": []
+      },
+      "check-placeholders": {
+        "pass": true,
+        "placeholder_sections": []
+      },
+      "check-length": {
+        "pass": true,
+        "lines": 440,
+        "issues": []
+      }
+    },
+    "checks_pass": true,
+    "gold_comparison": {
+      "section_overlap": 1.0,
+      "missing_sections": [],
+      "extra_sections": [],
+      "gen_has_proto": true,
+      "gold_has_proto": true,
+      "gen_proto_msgs": 10,
+      "gold_proto_msgs": 8,
+      "proto_coverage": 1.25,
+      "length_ratio": 1.37,
+      "gen_lines": 440,
+      "gold_lines": 321
+    },
+    "review_score": 8,
+    "review_pass": true,
+    "review_recommendation": "submit",
+    "review_scores": {
+      "architecture": 2,
+      "feasibility": 2,
+      "scope": 2,
+      "testability": 2
+    }
+  },
+  {
+    "case_id": "case-005-osac-1332-cluster-storage",
+    "jira_key": "OSAC-1332",
+    "title": "CaaS Cluster Storage",
+    "expected_score": 6,
+    "design_exists": true,
+    "checks": {
+      "check-structure": {
+        "pass": true,
+        "issues": [],
+        "missing_sections": [],
+        "present_sections": [
+          "Summary",
+          "Motivation",
+          "Proposal",
+          "Security Considerations",
+          "Failure Handling and Recovery",
+          "RBAC / Tenancy",
+          "Observability and Monitoring",
+          "Risks and Mitigations",
+          "Drawbacks",
+          "Alternatives (Not Implemented)",
+          "Test Plan",
+          "Graduation Criteria",
+          "Upgrade / Downgrade Strategy",
+          "Version Skew Strategy",
+          "Support Procedures"
+        ]
+      },
+      "check-proto": {
+        "pass": false,
+        "design_type": "backend",
+        "has_proto": false,
+        "proto_count": 0
+      },
+      "check-tenant-isolation": {
+        "pass": true,
+        "design_type": "backend",
+        "method": "annotations",
+        "issues": []
+      },
+      "check-placeholders": {
+        "pass": true,
+        "placeholder_sections": []
+      },
+      "check-length": {
+        "pass": true,
+        "lines": 346,
+        "issues": []
+      }
+    },
+    "checks_pass": false,
+    "gold_comparison": {
+      "section_overlap": 1.0,
+      "missing_sections": [],
+      "extra_sections": [
+        "open questions",
+        "cross-cutting dimensions"
+      ],
+      "gen_has_proto": false,
+      "gold_has_proto": false,
+      "gen_proto_msgs": 2,
+      "gold_proto_msgs": 0,
+      "proto_coverage": 1.0,
+      "length_ratio": 1.44,
+      "gen_lines": 346,
+      "gold_lines": 241
+    },
+    "review_score": null,
+    "review_pass": null,
+    "review_recommendation": null,
+    "review_scores": {
+      "architecture": 2,
+      "feasibility": 2,
+      "scope": 2,
+      "testability": 1,
+      "total": 7
+    }
+  },
+  {
+    "case_id": "case-006-osac-1319-bare-metal-ui",
+    "jira_key": "OSAC-1319",
+    "title": "BareMetal Instance UI",
+    "expected_score": 6,
+    "design_exists": true,
+    "checks": {
+      "check-structure": {
+        "pass": true,
+        "issues": [],
+        "missing_sections": [],
+        "present_sections": [
+          "Summary",
+          "Motivation",
+          "Proposal",
+          "Security Considerations",
+          "Failure Handling and Recovery",
+          "RBAC / Tenancy",
+          "Observability and Monitoring",
+          "Risks and Mitigations",
+          "Drawbacks",
+          "Alternatives (Not Implemented)",
+          "Test Plan",
+          "Graduation Criteria",
+          "Upgrade / Downgrade Strategy",
+          "Version Skew Strategy",
+          "Support Procedures"
+        ]
+      },
+      "check-proto": {
+        "pass": true,
+        "design_type": "ui",
+        "has_proto": false,
+        "proto_count": 0,
+        "has_typescript": true,
+        "ts_count": 5
+      },
+      "check-tenant-isolation": {
+        "pass": true,
+        "design_type": "ui",
+        "issues": []
+      },
+      "check-placeholders": {
+        "pass": true,
+        "placeholder_sections": []
+      },
+      "check-length": {
+        "pass": true,
+        "lines": 455,
+        "issues": []
+      }
+    },
+    "checks_pass": true,
+    "gold_comparison": {
+      "section_overlap": 1.0,
+      "missing_sections": [],
+      "extra_sections": [],
+      "gen_has_proto": false,
+      "gold_has_proto": false,
+      "gen_proto_msgs": 1,
+      "gold_proto_msgs": 1,
+      "proto_coverage": 1.0,
+      "length_ratio": 2.01,
+      "gen_lines": 455,
+      "gold_lines": 226
+    },
+    "review_score": 7,
+    "review_pass": true,
+    "review_recommendation": "submit",
+    "review_scores": {
+      "architecture": 2,
+      "feasibility": 2,
+      "scope": 2,
+      "testability": 1
+    }
+  }
+]

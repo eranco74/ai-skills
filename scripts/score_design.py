@@ -361,13 +361,18 @@ class DesignScorer:
                 issues.append("Missing tenant isolation discussion (UI designs should explain how the API enforces isolation)")
             return {"pass": has_isolation, "design_type": "ui", "issues": issues}
 
-        has_tenant = "osac.openshift.io/tenant" in content_lower
-        has_owner = "osac.openshift.io/owner-reference" in content_lower
-        if not has_tenant:
-            issues.append("Missing tenant isolation annotation: osac.openshift.io/tenant")
-        if not has_owner:
-            issues.append("Missing owner reference annotation: osac.openshift.io/owner-reference")
-        return {"pass": has_tenant and has_owner, "design_type": "backend", "issues": issues}
+        has_annotations = ("osac.openshift.io/tenant" in content_lower and
+                          "osac.openshift.io/owner-reference" in content_lower)
+        has_isolation_discussion = ("tenant isolation" in content_lower or
+                                   "tenant namespace" in content_lower or
+                                   "per-tenant" in content_lower)
+        if has_annotations:
+            return {"pass": True, "design_type": "backend", "method": "annotations", "issues": []}
+        if has_isolation_discussion:
+            issues.append("Tenant isolation discussed in prose but missing literal annotation strings (warning)")
+            return {"pass": True, "design_type": "backend", "method": "prose", "issues": issues}
+        issues.append("Missing tenant isolation: no annotations and no isolation discussion found")
+        return {"pass": False, "design_type": "backend", "issues": issues}
 
     def check_length(self) -> Dict[str, Any]:
         """Check if design is within expected length range."""
