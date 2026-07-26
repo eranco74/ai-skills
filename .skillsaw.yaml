@@ -1,0 +1,109 @@
+# skillsaw configuration for osac-ai-skills
+# https://github.com/stbenjam/skillsaw
+
+version: "0.17.0"
+
+rules:
+  agentskill-valid:
+    enabled: auto
+    severity: error
+
+  agentskill-name:
+    enabled: auto
+    severity: error
+
+  agentskill-description:
+    enabled: auto
+    severity: warning
+
+  agentskill-structure:
+    enabled: auto
+    severity: warning
+    allowed_dirs:
+      - assets
+      - evals
+      - references
+      - scripts
+      - steps
+      - context
+      - prompts
+      - eval
+      - skills
+
+  agentskill-unreferenced-files:
+    enabled: auto
+    severity: warning
+
+  agentskill-evals:
+    enabled: auto
+    severity: warning
+
+  skill-frontmatter:
+    enabled: true
+    severity: warning
+
+  content-weak-language:
+    enabled: auto
+    severity: warning
+
+  content-placeholder-text:
+    enabled: auto
+    severity: warning
+
+  content-embedded-secrets:
+    enabled: auto
+    severity: error
+
+  content-contradiction:
+    enabled: auto
+    severity: warning
+
+  content-critical-position:
+    enabled: auto
+    severity: warning
+
+  content-broken-internal-reference:
+    enabled: auto
+    severity: info
+
+  content-actionability-score:
+    enabled: auto
+    severity: info
+
+  content-instruction-budget:
+    enabled: auto
+    severity: warning
+
+  content-negative-only:
+    enabled: auto
+    severity: warning
+
+  context-budget:
+    enabled: auto
+    severity: warning
+    limits:
+      skill:
+        warn: 5000
+        error: 10000
+
+  instruction-file-valid:
+    enabled: auto
+    severity: warning
+
+  instruction-imports-valid:
+    enabled: auto
+    severity: warning
+
+exclude:
+  # Runtime artifacts
+  - ".artifacts/**"
+  - "artifacts/**"
+  - "tmp/**"
+  # Eval results (generated, not skill content)
+  - "**/eval/results/**"
+  # Gold standard docs (content, not instructions)
+  - "**/eval/dataset/**"
+  # Exemplar docs (reference material, not instructions)
+  - "**/context/exemplars/**"
+
+strict: true
