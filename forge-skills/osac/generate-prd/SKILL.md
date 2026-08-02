@@ -76,12 +76,15 @@ For each dimension relevant to the feature, address it in In Scope or Out of Sco
 ## Size Calibration
 
 Match output depth to feature complexity:
-- **Simple feature** (1-2 capabilities): 30-50 lines, 4-6 Out of Scope items
-- **Medium feature** (3-5 capabilities): 50-80 lines, 6-8 Out of Scope items
-- **Complex feature** (5+ capabilities): 80-120 lines, 8-12 Out of Scope items
+- **Simple feature** (1-2 capabilities): 30-50 lines
+- **Medium feature** (3-5 capabilities): 50-80 lines
+- **Complex feature** (5+ capabilities): 80-120 lines
 
-One user story per distinct user goal. Consolidate similar stories.
-2-4 specific risks better than 6 generic ones. Each risk must name a failure mode.
+One user story per distinct user goal. Consolidate identical persona stories
+under one heading (e.g., `### Tenant Admin / Tenant User`).
+Out of Scope is **optional** — only include what a reader would plausibly assume.
+Do not restate user stories in In Scope — add boundary-setting bullets only.
+Skip dimensions from osac-context.md that don't apply; no "N/A" lines.
 
 ## Source Traceability
 

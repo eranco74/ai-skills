@@ -62,13 +62,25 @@ Match output depth to feature complexity. Do NOT over-engineer small features.
 - **User Stories:** One story per distinct user goal. Consolidate similar stories
   rather than writing near-duplicates for different personas. If two personas
   do the same thing, combine them under one heading.
-- **Out of Scope:** Include only items a reviewer would plausibly ask about.
-  For a simple feature, 4-6 items is sufficient. More than 10 items for a
-  single-resource feature suggests you're listing things nobody would expect.
+- **Out of Scope:** This section is **optional**. Only include what a reader
+  might reasonably assume is included but isn't. Do not write "N/A" or invent
+  non-goals to fill the section. If there's nothing beyond the obvious, omit
+  the section body entirely.
 - **Personas:** Only personas genuinely affected. Don't invent interactions.
   If Cloud Infrastructure Admin isn't affected, say so in one line — don't pad.
 - **Risks/Assumptions:** 2-4 specific items better than 6 generic ones. Each
   risk must name a concrete failure mode, not a vague category.
+- **No restatement:** Do not restate the same requirement across multiple
+  sections. In Scope should add boundaries user stories alone wouldn't convey,
+  not duplicate them. If In Scope has nothing to add beyond the stories, keep
+  it to 2-4 boundary-setting bullets.
+- **Illustrative examples:** A single minimal example (a sample format, a short
+  flow list) may accompany prose when it's the clearest way to convey a
+  user-observable capability. This is not license to describe internal
+  architecture — the design leakage rules still apply to examples.
+- **Dimensions:** Only include dimensional content (from osac-dimensions.md) when
+  the feature's Jira issue plausibly touches that dimension. Skip silently if
+  irrelevant — do not add "N/A" lines.
 - **Line count guide:**
   - Simple feature (1-2 capabilities): 30-50 lines
   - Medium feature (3-5 capabilities): 50-80 lines

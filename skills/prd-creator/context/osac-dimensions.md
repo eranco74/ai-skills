@@ -1,9 +1,20 @@
 # OSAC Feature Dimensions
 
-This file defines the cross-cutting dimensions that every OSAC PRD and design
-document must address. Both the PRD (`/prd`) and design (`/design`) workflows
-should consult this file during their ingest phases to ensure comprehensive
-coverage.
+This file defines the cross-cutting dimensions that OSAC PRD and design
+documents should consider, subject to the relevance triage below — not every
+dimension applies to every feature. Both the PRD (`/prd`) and design
+(`/design`) workflows should consult this file during their ingest phases to
+ensure comprehensive coverage of the dimensions that actually apply.
+
+## Applying These Dimensions
+
+Before asking about a dimension during `/clarify`, or before drafting In
+Scope/Out of Scope content for it, confirm the feature's Jira issue plausibly
+touches that dimension (service, component, or workflow named in the issue).
+If a dimension clearly doesn't apply, skip it silently — do not ask about it,
+and do not add an "N/A" or "out of scope" line for it. When genuinely unsure
+whether a dimension applies, ask one targeted question rather than assuming
+either way.
 
 ## Services
 
@@ -34,8 +45,12 @@ in user stories and workflow descriptions.
 
 ## Cross-Cutting Dimensions
 
-For each dimension below, the PRD should state what's in scope vs. explicitly
-out of scope.
+For each dimension below that applies (per the triage rule above), the PRD
+should state its in-scope content. Add an explicit out-of-scope statement
+for that dimension only when a reader might otherwise assume broader scope
+than intended — not as a mandatory pairing with every in-scope bullet (see
+`.prd/templates/section-guidance.md`'s Out of Scope guidance, which is
+optional and prohibits padding with "N/A").
 
 **PRD vs Design:** The PRD states which user-facing behaviors are affected
 and why. The design document specifies how (CRD fields, conditions, reconcile
