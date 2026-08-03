@@ -1,0 +1,178 @@
+name: forge-generate-prd-eval
+description: |
+  Evaluate Forge-generated PRDs against OSAC quality standards.
+  Works on PRD output files — does not invoke Forge itself.
+  Feed it a generated prd.md and it scores against gold standards.
+
+# This eval runs AFTER Forge generates a PRD. Two ways to use it:
+#
+# 1. Post-generation CI check:
+#    Forge generates prd.md → GH Action runs this eval → blocks merge if fails
+#
+# 2. Manual evaluation:
+#    python3 scripts/eval_forge_prd.py path/to/generated/prd.md [--gold path/to/gold-prd.md]
+
+dataset:
+  path: eval/dataset/cases
+  schema: |
+    Each case directory contains:
+    - input.yaml: jira_key, title
+    - gold-prd.md: The merged/approved PRD for comparison
+    - annotations.yaml: expected_score, expected_pass, notes
+
+judges:
+  # --- Deterministic checks (reuse prd-creator's score_prd.py) ---
+
+  - name: template_compliance
+    description: |
+      PRD has exactly the 6 OSAC template sections (Problem Statement,
+      In Scope, Out of Scope, User Stories, Assumptions, Dependencies)
+      and NO extra sections (Risks, Acceptance Criteria, Terminology,
+      Milestone Scoping, Open Questions).
+    check: |
+      import re
+      content = outputs.get("prd_content", "")
+      if not content:
+          return (False, "No PRD content provided")
+      headings = [m.group(1).strip() for m in re.finditer(r'^##\s+(.+)$', content, re.MULTILINE)]
+      required = ["Problem Statement", "In Scope", "Out of Scope", "User Stories"]
+      optional = ["Assumptions", "Dependencies"]
+      forbidden = ["Risks", "Acceptance Criteria", "Terminology", "Milestone",
+                   "Open Questions", "Success Metrics", "Goals", "Non-Goals",
+                   "Requirements", "Functional Requirements"]
+      missing = [s for s in required if not any(s.lower() in h.lower() for h in headings)]
+      extra = [h for h in headings if any(f.lower() in h.lower() for f in forbidden)]
+      errors = []
+      if missing:
+          errors.append(f"Missing required sections: {', '.join(missing)}")
+      if extra:
+          errors.append(f"Non-template sections present (must remove): {', '.join(extra)}")
+      return (len(errors) == 0, "; ".join(errors) if errors else f"{len(headings)} sections, template-compliant")
+
+  - name: persona_coverage
+    description: PRD includes user stories for OSAC personas
+    check: |
+      content = outputs.get("prd_content", "")
+      personas = ["Cloud Provider Admin", "Cloud Infrastructure Admin", "Tenant Admin", "Tenant User"]
+      found = [p for p in personas if p in content]
+      return (len(found) >= 2, f"Personas found: {', '.join(found)}" if found else "No OSAC personas mentioned")
+
+  - name: no_design_leakage
+    description: |
+      PRD does not contain implementation details that belong in the
+      design document.
+    check: |
+      import re
+      content = outputs.get("prd_content", "")
+      leakage_patterns = [
+          (r'\breconcil(?:er?|ation)\b', 'reconciler/reconciliation'),
+          (r'\bfinalizer\b', 'finalizer'),
+          (r'\bplaybook\b', 'playbook'),
+          (r'\benv var\b', 'env var'),
+          (r'\bAAP job\b', 'AAP job'),
+          (r'\bosac-operator\b', 'osac-operator'),
+          (r'\bosac-aap\b', 'osac-aap'),
+          (r'\bcontroller\b(?!\s+Planes?)', 'controller'),
+          (r'\bInfraEnv\b', 'InfraEnv (internal)'),
+          (r'\bSQLSTATE\b', 'SQLSTATE'),
+          (r'status=True', 'condition spec'),
+          (r'reason=\w+', 'condition reason'),
+          (r'exponential backoff', 'retry implementation'),
+      ]
+      found = []
+      for pattern, label in leakage_patterns:
+          if re.search(pattern, content, re.IGNORECASE):
+              found.append(label)
+      return (len(found) == 0, f"Design leakage: {', '.join(found)}" if found else "No design leakage")
+
+  - name: conciseness
+    description: PRD is appropriately sized (not padded)
+    check: |
+      content = outputs.get("prd_content", "")
+      lines = [l for l in content.split("\n") if l.strip()]
+      non_blank = len(lines)
+      if non_blank > 120:
+          return (False, f"{non_blank} non-blank lines — likely over-engineered (target: 30-100)")
+      if non_blank < 10:
+          return (False, f"{non_blank} non-blank lines — too sparse")
+      return (True, f"{non_blank} non-blank lines")
+
+  - name: no_restatement
+    description: In Scope does not duplicate User Stories content
+    check: |
+      import re
+      content = outputs.get("prd_content", "")
+      sections = {}
+      current = None
+      for line in content.split("\n"):
+          m = re.match(r'^##\s+(.+)$', line)
+          if m:
+              current = m.group(1).strip()
+              sections[current] = []
+          elif current:
+              sections[current].append(line)
+      in_scope = " ".join(sections.get("In Scope", []))
+      stories = " ".join(sections.get("User Stories", []))
+      if not in_scope or not stories:
+          return (True, "Sections not both present")
+      # Check for substantial overlap (same phrases in both)
+      in_scope_words = set(in_scope.lower().split())
+      story_words = set(stories.lower().split())
+      overlap = in_scope_words & story_words - {"the", "a", "an", "to", "and", "or", "is", "are", "can", "want", "so", "that", "i", "as"}
+      ratio = len(overlap) / max(len(in_scope_words), 1)
+      if ratio > 0.6:
+          return (False, f"In Scope has {ratio:.0%} word overlap with User Stories — likely restating")
+      return (True, f"{ratio:.0%} overlap (acceptable)")
+
+  # --- LLM judges ---
+
+  - name: prd_quality
+    description: Overall PRD quality assessment against OSAC standards
+    prompt: |
+      You are an OSAC PRD reviewer. Score this PRD on the 5-criterion rubric:
+
+      1. WHAT (0-2): Clear user-facing need? Per-persona user stories?
+      2. WHY (0-2): Business justification with impact?
+      3. User-Facing Focus (0-2): Free from design leakage?
+      4. Right-Sized (0-2): Focused scope? Economical (no padding)?
+      5. Testability (0-2): Requirements verifiable by a PM?
+
+      PRD content:
+      {{ outputs.prd_content }}
+
+      Score each criterion, give a total /10, and state PASS (>=7, no zeros)
+      or FAIL. Give an overall quality score 1-5.
+
+  - name: pairwise_vs_gold
+    description: Blind comparison against gold-standard merged PRD
+    prompt: |
+      Compare these two PRDs for the same OSAC feature. One was written by
+      a human (possibly AI-assisted) and merged after review. The other was
+      generated by Forge.
+
+      === Generated PRD ===
+      {{ outputs.prd_content }}
+
+      === Gold Standard PRD ===
+      {{ annotations.gold_content }}
+
+      Compare on: completeness, clarity, persona coverage, scope discipline,
+      user-facing focus, conciseness.
+
+      Score the generated PRD 1-5 where 5 = equal or better than gold.
+
+thresholds:
+  template_compliance:
+    min_pass_rate: 1.0
+  persona_coverage:
+    min_pass_rate: 0.9
+  no_design_leakage:
+    min_pass_rate: 0.8
+  conciseness:
+    min_pass_rate: 0.9
+  no_restatement:
+    min_pass_rate: 0.8
+  prd_quality:
+    min_mean: 3.5
+  pairwise_vs_gold:
+    min_mean: 3.0
