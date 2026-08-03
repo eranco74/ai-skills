@@ -1,3 +1,18 @@
 jira_key: OSAC-1270
 title: "Base OS Management for Bare-Metal Instances"
 priority: Medium
+prompt: "# OSAC-1270: Base OS management for bare metal instances\n\n## Metadata\n\n- **Status**: In Progress\n- **Priority**: Normal\n- **Assignee**: Adrien Gentil\n- **Reporter**: Adrien Gentil\n- **Components**:\
+  \ BMaaS\n- **Labels**: customer:telefonica\n\n## Description\n\n## Feature Goal\n\n  Enable tenants to select, apply, and manage the base OS on their bare metal instances through OSAC, and allow Cloud\n\
+  \  Provider Admins and Tenant Admins to define and publish the OS images available for provisioning.\n\n  ## Problem Statement\n\n  Currently, the OS image applied to a bare metal instance is fixed by\
+  \ the BaremetalInstanceTemplate and cannot be\n  changed by tenants. There is no lifecycle management for the OS and tenants have no visibility into the images\n  available to them. Cloud Provider Admins\
+  \ have no structured surface to publish and version OS images independently\n  of the full template. Tenant Admins have no way to publish organization-specific OS images for their users.\n\n  ## User\
+  \ Stories\n\n  \u2022 As a Tenant User, I want to see the list of OS images available to me so that I can select the appropriate base OS\n  when provisioning a bare metal instance.\n  \u2022 As a Tenant\
+  \ Admin, I want to be able to publish my own base image that will be available to my tenant users.\n  \u2022 As a Cloud Provider Admin, I want to define and publish OS images (name, version, source reference)\
+  \ available for\n  bare metal provisioning so that tenants can select from a curated set.\n  \u2022 As a Cloud Provider Admin, I want to deprecate or remove an OS image so that tenants cannot provision\
+  \ new\n  instances with unsupported images.\n\n  ## Definition of Done\n\n  [ ] OS images are exposed as a queryable resource in the fulfillment-service public API\n  [ ] Tenants can specify an OS image\
+  \ at BaremetalInstance creation time\n  [ ] Tenant Admins can publish organization-specific OS images visible only to their users\n  [ ] Cloud Provider Admins can publish and manage global OS images via\
+  \ osac-aap\n  [ ] E2E tests cover OS image selection at provision time\n\n  ## Out of Scope\n\n  \u2022 Custom OS image upload by tenants \u2014 images are curated and published by Cloud Provider Admins\
+  \ or Tenant Admins\n  only\n  \u2022 In-place OS upgrade (package-level) \u2014 this feature covers image selection at provision time only\n  \u2022 OS configuration management beyond the initial boot\
+  \ (e.g. configuration drift detection)\n\n  This feature should likely be unified with VMaaS work: \U0001F4CD https://github.com/osac-project/enhancement-\n  proposals/tree/main/enhancements/image-management\
+  \ https://github.com/osac-project/enhancement-\n  proposals/tree/main/enhancements/image-management\n\n## Linked Issues\n\n- **OSAC-1118** (In Progress): Baremetal OSAC API\n- **OSAC-2540** (In Progress):\
+  \ DiskImage resource for disk image metadata management\n"

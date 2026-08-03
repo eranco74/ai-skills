@@ -1,88 +1,148 @@
-name: forge-generate-spec-eval
-description: |
-  Evaluate Forge-generated design documents against OSAC quality standards.
-  Works on design output files — does not invoke Forge itself.
+name: forge-osac-generate-spec
+description: >-
+  Test the OSAC Forge generate-spec skill override. Invokes the skill with
+  Jira feature content + PRD as input, collects the generated design, and
+  scores it against gold-standard merged designs.
+skill: generate-spec
+
+execution:
+  mode: case
+  arguments: "{{ input.prompt }}"
+  timeout: 1200
+  max_budget_usd: 10.0
+
+runner:
+  type: claude-code
+  effort: high
+
+models:
+  skill: claude-sonnet-4-6
+  judge: claude-sonnet-4-6
+
+permissions:
+  allow:
+    - "Skill"
+    - "Read"
+    - "Write"
+  deny: []
 
 dataset:
   path: eval/dataset/cases
   schema: |
     Each case directory contains:
-    - input.yaml: jira_key, title
-    - gold-design.md: The merged/approved design for comparison
+    - input.yaml:
+      - jira_key (string): Jira issue key
+      - title (string): Feature title
+      - prompt (string): Raw requirements from Jira (pre-fetched)
+    - annotations.yaml:
+      - expected_score (int, 0-8): Score from design reviewers
+      - expected_pass (bool): Whether it passes (score >= 5)
+    - gold-design.md: The merged/approved design document
     - gold-prd.md: The PRD that fed the design
-    - annotations.yaml: expected_score, expected_pass, notes
+
+inputs:
+  tools:
+    - match: |
+        Any interaction with Jira.
+      prompt: |
+        Jira content is in the input prompt. Do not fetch from Jira.
 
 judges:
   - name: structure_valid
-    description: Design has required sections from OSAC EP template
+    description: Design has required EP template sections
     check: |
       import re
-      content = outputs.get("design_content", "")
+      files = outputs.get("files", {})
+      design = ""
+      for fname, content in files.items():
+          if fname.endswith(".md") and ("Summary" in content or "Proposal" in content):
+              design = content
+              break
+      if not design:
+          return (False, "No design file found")
       required = ["Summary", "Motivation", "Proposal", "Test Plan", "Alternatives"]
-      headings = [m.group(1).strip() for m in re.finditer(r'^##\s+(.+)$', content, re.MULTILINE)]
-      heading_lower = [h.lower() for h in headings]
-      missing = [s for s in required if not any(s.lower() in h for h in heading_lower)]
-      return (len(missing) == 0, f"Missing: {', '.join(missing)}" if missing else f"{len(headings)} sections present")
+      headings = [m.group(1).strip().lower() for m in re.finditer(r'^##\s+(.+)$', design, re.MULTILINE)]
+      missing = [s for s in required if not any(s.lower() in h for h in headings)]
+      return (len(missing) == 0, f"Missing: {', '.join(missing)}" if missing else f"{len(headings)} sections")
 
-  - name: proto_or_typescript
-    description: Design includes proto schemas (backend) or TypeScript interfaces (UI)
+  - name: has_schemas
+    description: Design includes proto schemas or TypeScript interfaces
     check: |
       import re
-      content = outputs.get("design_content", "")
-      has_proto = bool(re.search(r'```(?:proto|protobuf)', content, re.IGNORECASE))
-      has_ts = bool(re.search(r'```(?:typescript|ts)', content, re.IGNORECASE))
-      has_schemas = has_proto or has_ts
-      schema_type = "proto" if has_proto else "TypeScript" if has_ts else "none"
-      return (has_schemas, f"Schema type: {schema_type}")
+      files = outputs.get("files", {})
+      design = ""
+      for fname, content in files.items():
+          if fname.endswith(".md") and "Proposal" in content:
+              design = content
+              break
+      if not design:
+          return (False, "No design found")
+      has_proto = bool(re.search(r'```(?:proto|protobuf)', design, re.IGNORECASE))
+      has_ts = bool(re.search(r'```(?:typescript|ts)', design, re.IGNORECASE))
+      return (has_proto or has_ts, f"{'proto' if has_proto else 'TypeScript' if has_ts else 'none'}")
 
   - name: tenant_isolation
     description: Design addresses tenant isolation
     check: |
-      content = outputs.get("design_content", "").lower()
-      has_annotation = "osac.openshift.io/tenant" in content
-      has_prose = "tenant isolation" in content or ("tenant" in content and "isolat" in content)
-      return (has_annotation or has_prose, "Tenant isolation addressed" if (has_annotation or has_prose) else "Missing tenant isolation")
+      files = outputs.get("files", {})
+      design = ""
+      for fname, content in files.items():
+          if fname.endswith(".md") and "Proposal" in content:
+              design = content
+              break
+      if not design:
+          return (False, "No design found")
+      content = design.lower()
+      has_it = "osac.openshift.io/tenant" in content or "tenant isolation" in content
+      return (has_it, "Addressed" if has_it else "Missing")
 
   - name: length_check
-    description: Design is within expected range (200-800 non-blank lines)
+    description: Design is 100-900 non-blank lines
     check: |
-      content = outputs.get("design_content", "")
-      lines = len([l for l in content.split("\n") if l.strip()])
-      ok = 100 <= lines <= 900
-      return (ok, f"{lines} non-blank lines")
+      files = outputs.get("files", {})
+      design = ""
+      for fname, content in files.items():
+          if fname.endswith(".md") and "Proposal" in content:
+              design = content
+              break
+      if not design:
+          return (False, "No design found")
+      lines = len([l for l in design.split("\n") if l.strip()])
+      return (100 <= lines <= 900, f"{lines} lines")
 
   - name: design_quality
-    description: Overall design quality against OSAC rubric
+    description: Score against OSAC 4-criterion design rubric
     prompt: |
-      Score this OSAC design document on 4 criteria:
-      1. Architecture (0-2): OSAC patterns, tenant isolation, cross-repo changes
-      2. Feasibility (0-2): Proto schemas, all CRUD ops, error codes, failure modes
-      3. Scope (0-2): PRD referenced, design goals, real alternatives
-      4. Testability (0-2): Specific unit/integration/e2e scenarios
+      Score this OSAC design document:
 
-      Design content:
-      {{ outputs.design_content }}
+      {{ outputs }}
 
-      Score each criterion, total /8, PASS (>=5, no zeros) or FAIL. Overall 1-5.
+      Criteria (0-2 each):
+      1. Architecture: OSAC patterns, tenant isolation, cross-repo changes
+      2. Feasibility: Proto schemas, CRUD ops, error codes, failure modes
+      3. Scope: PRD referenced, design goals, real alternatives
+      4. Testability: Specific unit/integration/e2e scenarios
+
+      Score 1-5 overall.
 
   - name: pairwise_vs_gold
     description: Blind comparison against gold-standard design
     prompt: |
-      Compare two OSAC design documents for the same feature.
+      Compare two OSAC design documents:
 
       === Generated ===
-      {{ outputs.design_content }}
+      {{ outputs }}
 
       === Gold Standard ===
-      {{ annotations.gold_content }}
+      {{ annotations }}
 
-      Compare on: architectural soundness, proto schema quality, test plan
-      coverage, scope boundaries, implementation depth. Score generated 1-5.
+      Compare: architecture, proto schemas, test plan, scope, implementation
+      depth. Score the generated design 1-5.
 
 thresholds:
   structure_valid:
     min_pass_rate: 1.0
-  proto_or_typescript:
+  has_schemas:
     min_pass_rate: 0.8
   tenant_isolation:
     min_pass_rate: 0.9

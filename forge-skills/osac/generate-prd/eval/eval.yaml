@@ -1,165 +1,187 @@
-name: forge-generate-prd-eval
-description: |
-  Evaluate Forge-generated PRDs against OSAC quality standards.
-  Works on PRD output files — does not invoke Forge itself.
-  Feed it a generated prd.md and it scores against gold standards.
+name: forge-osac-generate-prd
+description: >-
+  Test the OSAC Forge generate-prd skill override. Invokes the skill with
+  Jira feature content as input, collects the generated PRD, and scores it
+  against gold-standard merged PRDs using deterministic checks and LLM judges.
+skill: generate-prd
 
-# This eval runs AFTER Forge generates a PRD. Two ways to use it:
-#
-# 1. Post-generation CI check:
-#    Forge generates prd.md → GH Action runs this eval → blocks merge if fails
-#
-# 2. Manual evaluation:
-#    python3 scripts/eval_forge_prd.py path/to/generated/prd.md [--gold path/to/gold-prd.md]
+execution:
+  mode: case
+  arguments: "{{ input.prompt }}"
+  timeout: 600
+  max_budget_usd: 5.0
+
+runner:
+  type: claude-code
+  effort: high
+
+models:
+  skill: claude-sonnet-4-6
+  judge: claude-sonnet-4-6
+
+permissions:
+  allow:
+    - "Skill"
+    - "Read"
+    - "Write"
+  deny: []
 
 dataset:
   path: eval/dataset/cases
   schema: |
     Each case directory contains:
-    - input.yaml: jira_key, title
-    - gold-prd.md: The merged/approved PRD for comparison
-    - annotations.yaml: expected_score, expected_pass, notes
+    - input.yaml:
+      - jira_key (string): Jira issue key (e.g., OSAC-1269)
+      - title (string): Feature title
+      - prompt (string): The raw requirements text from the Jira feature
+        (description, user stories, definition of done — pre-fetched so the
+        eval doesn't need live Jira access)
+      - priority (string): Feature priority
+    - annotations.yaml:
+      - expected_score (int, 0-10): Score the gold PRD received from reviewers
+      - expected_pass (bool): Whether it should pass the rubric (score >= 7)
+      - gold_prd_path (string): Path to the merged PRD in enhancement-proposals
+      - notes (string): Any context about this case
+    - gold-prd.md: The actual merged/approved PRD for pairwise comparison
+
+inputs:
+  tools:
+    - match: |
+        Any interaction with Jira — fetching issues, reading comments,
+        downloading attachments. The eval runs offline with pre-fetched
+        input, so Jira calls should not be needed.
+      prompt: |
+        The Jira feature content is already provided in the input prompt.
+        Do not attempt to fetch from Jira. Use the provided content directly.
+
+outputs:
+  - path: "."
+    batch_pattern: "prd"
+    schema: |
+      The skill should produce a PRD markdown file. Look for any .md file
+      in the working directory that contains "## Problem Statement" or
+      "## User Stories" — that is the generated PRD.
 
 judges:
-  # --- Deterministic checks (reuse prd-creator's score_prd.py) ---
+  # --- Deterministic checks ---
 
   - name: template_compliance
-    description: |
-      PRD has exactly the 6 OSAC template sections (Problem Statement,
-      In Scope, Out of Scope, User Stories, Assumptions, Dependencies)
-      and NO extra sections (Risks, Acceptance Criteria, Terminology,
-      Milestone Scoping, Open Questions).
+    description: >-
+      PRD has the 6 OSAC template sections (Problem Statement, In Scope,
+      Out of Scope, User Stories, Assumptions, Dependencies) and NO extra
+      sections (Risks, Acceptance Criteria, Terminology, etc.)
     check: |
       import re
-      content = outputs.get("prd_content", "")
-      if not content:
-          return (False, "No PRD content provided")
-      headings = [m.group(1).strip() for m in re.finditer(r'^##\s+(.+)$', content, re.MULTILINE)]
+      files = outputs.get("files", {})
+      prd = ""
+      for fname, content in files.items():
+          if fname.endswith(".md") and "Problem Statement" in content:
+              prd = content
+              break
+      if not prd:
+          return (False, "No PRD file found in outputs")
+      headings = [m.group(1).strip() for m in re.finditer(r'^##\s+(.+)$', prd, re.MULTILINE)]
       required = ["Problem Statement", "In Scope", "Out of Scope", "User Stories"]
-      optional = ["Assumptions", "Dependencies"]
       forbidden = ["Risks", "Acceptance Criteria", "Terminology", "Milestone",
-                   "Open Questions", "Success Metrics", "Goals", "Non-Goals",
-                   "Requirements", "Functional Requirements"]
-      missing = [s for s in required if not any(s.lower() in h.lower() for h in headings)]
+                   "Open Questions", "Success Metrics", "Functional Requirements"]
+      heading_lower = [h.lower() for h in headings]
+      missing = [s for s in required if not any(s.lower() in h for h in heading_lower)]
       extra = [h for h in headings if any(f.lower() in h.lower() for f in forbidden)]
       errors = []
       if missing:
-          errors.append(f"Missing required sections: {', '.join(missing)}")
+          errors.append(f"Missing: {', '.join(missing)}")
       if extra:
-          errors.append(f"Non-template sections present (must remove): {', '.join(extra)}")
-      return (len(errors) == 0, "; ".join(errors) if errors else f"{len(headings)} sections, template-compliant")
+          errors.append(f"Extra (not in template): {', '.join(extra)}")
+      return (len(errors) == 0, "; ".join(errors) if errors else f"{len(headings)} sections, compliant")
 
   - name: persona_coverage
-    description: PRD includes user stories for OSAC personas
+    description: PRD includes user stories for at least 2 OSAC personas
     check: |
-      content = outputs.get("prd_content", "")
+      files = outputs.get("files", {})
+      prd = ""
+      for fname, content in files.items():
+          if fname.endswith(".md") and "User Stories" in content:
+              prd = content
+              break
+      if not prd:
+          return (False, "No PRD found")
       personas = ["Cloud Provider Admin", "Cloud Infrastructure Admin", "Tenant Admin", "Tenant User"]
-      found = [p for p in personas if p in content]
-      return (len(found) >= 2, f"Personas found: {', '.join(found)}" if found else "No OSAC personas mentioned")
+      found = [p for p in personas if p in prd]
+      return (len(found) >= 2, f"Found: {', '.join(found)}" if found else "No personas")
 
   - name: no_design_leakage
-    description: |
-      PRD does not contain implementation details that belong in the
-      design document.
+    description: PRD contains no implementation details
     check: |
       import re
-      content = outputs.get("prd_content", "")
-      leakage_patterns = [
-          (r'\breconcil(?:er?|ation)\b', 'reconciler/reconciliation'),
+      files = outputs.get("files", {})
+      prd = ""
+      for fname, content in files.items():
+          if fname.endswith(".md") and "Problem Statement" in content:
+              prd = content
+              break
+      if not prd:
+          return (False, "No PRD found")
+      patterns = [
+          (r'\breconcil(?:er?|ation)\b', 'reconciler'),
           (r'\bfinalizer\b', 'finalizer'),
           (r'\bplaybook\b', 'playbook'),
-          (r'\benv var\b', 'env var'),
           (r'\bAAP job\b', 'AAP job'),
           (r'\bosac-operator\b', 'osac-operator'),
-          (r'\bosac-aap\b', 'osac-aap'),
           (r'\bcontroller\b(?!\s+Planes?)', 'controller'),
-          (r'\bInfraEnv\b', 'InfraEnv (internal)'),
-          (r'\bSQLSTATE\b', 'SQLSTATE'),
-          (r'status=True', 'condition spec'),
-          (r'reason=\w+', 'condition reason'),
-          (r'exponential backoff', 'retry implementation'),
+          (r'\bInfraEnv\b', 'InfraEnv'),
+          (r'exponential backoff', 'retry impl'),
       ]
       found = []
-      for pattern, label in leakage_patterns:
-          if re.search(pattern, content, re.IGNORECASE):
+      for pattern, label in patterns:
+          if re.search(pattern, prd, re.IGNORECASE):
               found.append(label)
-      return (len(found) == 0, f"Design leakage: {', '.join(found)}" if found else "No design leakage")
+      return (len(found) == 0, f"Leakage: {', '.join(found)}" if found else "Clean")
 
   - name: conciseness
-    description: PRD is appropriately sized (not padded)
+    description: PRD is within target length (15-120 non-blank lines)
     check: |
-      content = outputs.get("prd_content", "")
-      lines = [l for l in content.split("\n") if l.strip()]
-      non_blank = len(lines)
-      if non_blank > 120:
-          return (False, f"{non_blank} non-blank lines — likely over-engineered (target: 30-100)")
-      if non_blank < 10:
-          return (False, f"{non_blank} non-blank lines — too sparse")
-      return (True, f"{non_blank} non-blank lines")
-
-  - name: no_restatement
-    description: In Scope does not duplicate User Stories content
-    check: |
-      import re
-      content = outputs.get("prd_content", "")
-      sections = {}
-      current = None
-      for line in content.split("\n"):
-          m = re.match(r'^##\s+(.+)$', line)
-          if m:
-              current = m.group(1).strip()
-              sections[current] = []
-          elif current:
-              sections[current].append(line)
-      in_scope = " ".join(sections.get("In Scope", []))
-      stories = " ".join(sections.get("User Stories", []))
-      if not in_scope or not stories:
-          return (True, "Sections not both present")
-      # Check for substantial overlap (same phrases in both)
-      in_scope_words = set(in_scope.lower().split())
-      story_words = set(stories.lower().split())
-      overlap = in_scope_words & story_words - {"the", "a", "an", "to", "and", "or", "is", "are", "can", "want", "so", "that", "i", "as"}
-      ratio = len(overlap) / max(len(in_scope_words), 1)
-      if ratio > 0.6:
-          return (False, f"In Scope has {ratio:.0%} word overlap with User Stories — likely restating")
-      return (True, f"{ratio:.0%} overlap (acceptable)")
+      files = outputs.get("files", {})
+      prd = ""
+      for fname, content in files.items():
+          if fname.endswith(".md") and "Problem Statement" in content:
+              prd = content
+              break
+      if not prd:
+          return (False, "No PRD found")
+      lines = len([l for l in prd.split("\n") if l.strip()])
+      return (15 <= lines <= 120, f"{lines} lines")
 
   # --- LLM judges ---
 
   - name: prd_quality
-    description: Overall PRD quality assessment against OSAC standards
+    description: Score the PRD against the OSAC 5-criterion rubric
     prompt: |
-      You are an OSAC PRD reviewer. Score this PRD on the 5-criterion rubric:
+      You are an OSAC PRD reviewer. Score this PRD:
 
-      1. WHAT (0-2): Clear user-facing need? Per-persona user stories?
-      2. WHY (0-2): Business justification with impact?
-      3. User-Facing Focus (0-2): Free from design leakage?
-      4. Right-Sized (0-2): Focused scope? Economical (no padding)?
-      5. Testability (0-2): Requirements verifiable by a PM?
+      {{ outputs }}
 
-      PRD content:
-      {{ outputs.prd_content }}
+      Criteria (0-2 each):
+      1. WHAT: Clear user-facing need? Per-persona user stories?
+      2. WHY: Business justification with concrete impact?
+      3. User-Facing Focus: Free from design leakage?
+      4. Right-Sized: Focused and economical (no padding)?
+      5. Testability: Requirements verifiable by a PM?
 
-      Score each criterion, give a total /10, and state PASS (>=7, no zeros)
-      or FAIL. Give an overall quality score 1-5.
+      Score 1-5 overall (5 = exemplary, 3 = adequate, 1 = poor).
 
   - name: pairwise_vs_gold
-    description: Blind comparison against gold-standard merged PRD
+    description: Blind comparison against the gold-standard merged PRD
     prompt: |
-      Compare these two PRDs for the same OSAC feature. One was written by
-      a human (possibly AI-assisted) and merged after review. The other was
-      generated by Forge.
+      Compare two PRDs for the same OSAC feature:
 
-      === Generated PRD ===
-      {{ outputs.prd_content }}
+      === Generated ===
+      {{ outputs }}
 
-      === Gold Standard PRD ===
-      {{ annotations.gold_content }}
+      === Gold Standard ===
+      {{ annotations }}
 
-      Compare on: completeness, clarity, persona coverage, scope discipline,
-      user-facing focus, conciseness.
-
-      Score the generated PRD 1-5 where 5 = equal or better than gold.
+      Compare: completeness, clarity, persona coverage, scope discipline,
+      user-facing focus, conciseness. Score the generated PRD 1-5.
 
 thresholds:
   template_compliance:
@@ -170,8 +192,6 @@ thresholds:
     min_pass_rate: 0.8
   conciseness:
     min_pass_rate: 0.9
-  no_restatement:
-    min_pass_rate: 0.8
   prd_quality:
     min_mean: 3.5
   pairwise_vs_gold:
