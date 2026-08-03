@@ -1,0 +1,3 @@
+expected_score: 9
+expected_pass: true
+gold_prd_path: enhancement-proposals/enhancements/type-safe-resource-references/prd.md

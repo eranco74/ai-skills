@@ -1,0 +1,3 @@
+expected_score: 10
+expected_pass: true
+gold_prd_path: enhancement-proposals/enhancements/OSAC-1269-cluster-version-api/prd.md

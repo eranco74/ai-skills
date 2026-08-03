@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """
-Evaluate a Forge-generated PRD against OSAC quality standards.
+Evaluate a Forge-generated design document against OSAC quality standards.
 
-Works on any PRD markdown file — doesn't need Forge, pipeline_state.py,
-or any prd-creator infrastructure. Just point it at a prd.md.
+Works on any design markdown file — doesn't need Forge, pipeline_state.py,
+or any prd-creator infrastructure. Just point it at a design.md.
 
 Usage:
     # Score a single PRD
-    python3 eval_forge_prd.py path/to/prd.md
+    python3 eval_forge_design.py path/to/design.md
 
     # Score against a gold standard
-    python3 eval_forge_prd.py path/to/prd.md --gold path/to/gold-prd.md
+    python3 eval_forge_design.py path/to/design.md --gold path/to/gold-design.md
 
     # Score a PR directly
-    python3 eval_forge_prd.py --pr 181 --repo osac-project/enhancement-proposals
+    python3 eval_forge_design.py --pr 181 --repo osac-project/enhancement-proposals
 
     # Run all eval cases
-    python3 eval_forge_prd.py --all
+    python3 eval_forge_design.py --all
 """
 
 import argparse
@@ -27,13 +27,9 @@ import sys
 from pathlib import Path
 
 
-REQUIRED_SECTIONS = ["Problem Statement", "In Scope", "Out of Scope", "User Stories"]
-OPTIONAL_SECTIONS = ["Assumptions", "Dependencies"]
-FORBIDDEN_SECTIONS = [
-    "Risks", "Acceptance Criteria", "Terminology", "Milestone",
-    "Open Questions", "Success Metrics", "Goals", "Non-Goals",
-    "Requirements", "Functional Requirements",
-]
+REQUIRED_SECTIONS = ["Summary", "Motivation", "Proposal", "Test Plan", "Alternatives"]
+OPTIONAL_SECTIONS = ["Security Considerations", "Failure Handling", "RBAC", "Observability", "Risks", "Drawbacks", "Graduation Criteria", "Upgrade", "Version Skew", "Support Procedures"]
+FORBIDDEN_SECTIONS = []  # Design template allows all sections
 PERSONAS = [
     "Cloud Provider Admin", "Cloud Infrastructure Admin",
     "Tenant Admin", "Tenant User",
@@ -103,7 +99,7 @@ def check_length(content):
     return {
         "pass": 10 <= non_blank <= 120,
         "lines": non_blank,
-        "assessment": "too long" if non_blank > 120 else "too short" if non_blank < 10 else "ok",
+        "assessment": "too long" if non_blank > 900 else "too short" if non_blank < 100 else "ok",
     }
 
 
@@ -137,7 +133,7 @@ def fetch_pr_prd(pr_number, repo):
         lines = []
         in_prd = False
         for line in result.stdout.split("\n"):
-            if line.startswith("+++ b/") and "prd.md" in line:
+            if line.startswith("+++ b/") and "design.md" in line:
                 in_prd = True
                 continue
             if line.startswith("+++ b/") and in_prd:
@@ -150,7 +146,7 @@ def fetch_pr_prd(pr_number, repo):
         sys.exit(1)
 
 
-def score_prd(content, gold_content=None):
+def score_design(content, gold_content=None):
     results = {
         "template": check_template(content),
         "personas": check_personas(content),
@@ -168,7 +164,7 @@ def score_prd(content, gold_content=None):
 
 
 def print_report(results, prd_source):
-    print(f"## Forge PRD Evaluation: {prd_source}")
+    print(f"## Forge Design Evaluation: {prd_source}")
     print()
 
     checks = [
@@ -230,7 +226,7 @@ def load_case(case_dir):
         with open(annotations_file) as f:
             case["annotations"] = yaml.safe_load(f)
 
-    gold_file = case_dir / "gold-prd.md"
+    gold_file = case_dir / "gold-design.md"
     if gold_file.exists():
         case["gold_content"] = gold_file.read_text()
 
@@ -255,7 +251,7 @@ def run_all_cases(cases_dir, generated_dir=None, pr_numbers=None):
 
         # Option 1: generated file provided
         if generated_dir:
-            for pattern in [f"{jira_key}.md", f"{jira_key}-prd.md", f"{jira_key}/prd.md"]:
+            for pattern in [f"{jira_key}.md", f"{jira_key}-design.md", f"{jira_key}/design.md"]:
                 gen_path = Path(generated_dir) / pattern
                 if gen_path.exists():
                     content = gen_path.read_text()
@@ -278,7 +274,7 @@ def run_all_cases(cases_dir, generated_dir=None, pr_numbers=None):
             continue
 
         gold_content = case.get("gold_content")
-        scored = score_prd(content, gold_content)
+        scored = score_design(content, gold_content)
         scored["case_id"] = case["case_id"]
         scored["jira_key"] = jira_key
         scored["title"] = case.get("input", {}).get("title", "?")
@@ -292,7 +288,7 @@ def run_all_cases(cases_dir, generated_dir=None, pr_numbers=None):
 
 def print_all_report(results):
     """Print a summary report for all cases."""
-    print("# Forge PRD Evaluation Report")
+    print("# Forge Design Evaluation Report")
     print()
 
     generated = [r for r in results if r.get("generated")]
@@ -339,9 +335,9 @@ def print_all_report(results):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate Forge-generated PRDs")
-    parser.add_argument("prd_file", nargs="?", help="Path to PRD markdown file")
-    parser.add_argument("--gold", help="Path to gold-standard PRD for comparison")
+    parser = argparse.ArgumentParser(description="Evaluate Forge-generated designs")
+    parser.add_argument("design_file", nargs="?", help="Path to design markdown file")
+    parser.add_argument("--gold", help="Path to gold-standard design for comparison")
     parser.add_argument("--pr", type=int, help="PR number to fetch PRD from")
     parser.add_argument("--repo", default="osac-project/enhancement-proposals")
     parser.add_argument("--json", action="store_true", help="Output JSON")
@@ -363,16 +359,16 @@ def main():
     if args.pr:
         content = fetch_pr_prd(args.pr, args.repo)
         source = f"PR #{args.pr}"
-    elif args.prd_file:
-        content = Path(args.prd_file).read_text()
-        source = args.prd_file
+    elif args.design_file:
+        content = Path(args.design_file).read_text()
+        source = args.design_file
     else:
         print("Provide a PRD file, --pr NUMBER, or --all", file=sys.stderr)
         sys.exit(1)
 
     gold_content = Path(args.gold).read_text() if args.gold else None
 
-    results = score_prd(content, gold_content)
+    results = score_design(content, gold_content)
 
     if args.json:
         print(json.dumps(results, indent=2))

@@ -1,0 +1,3 @@
+expected_score: 9
+expected_pass: true
+gold_prd_path: enhancement-proposals/enhancements/storage-control-plane-osac-2872/prd.md

@@ -1,0 +1,94 @@
+name: forge-generate-spec-eval
+description: |
+  Evaluate Forge-generated design documents against OSAC quality standards.
+  Works on design output files — does not invoke Forge itself.
+
+dataset:
+  path: eval/dataset/cases
+  schema: |
+    Each case directory contains:
+    - input.yaml: jira_key, title
+    - gold-design.md: The merged/approved design for comparison
+    - gold-prd.md: The PRD that fed the design
+    - annotations.yaml: expected_score, expected_pass, notes
+
+judges:
+  - name: structure_valid
+    description: Design has required sections from OSAC EP template
+    check: |
+      import re
+      content = outputs.get("design_content", "")
+      required = ["Summary", "Motivation", "Proposal", "Test Plan", "Alternatives"]
+      headings = [m.group(1).strip() for m in re.finditer(r'^##\s+(.+)$', content, re.MULTILINE)]
+      heading_lower = [h.lower() for h in headings]
+      missing = [s for s in required if not any(s.lower() in h for h in heading_lower)]
+      return (len(missing) == 0, f"Missing: {', '.join(missing)}" if missing else f"{len(headings)} sections present")
+
+  - name: proto_or_typescript
+    description: Design includes proto schemas (backend) or TypeScript interfaces (UI)
+    check: |
+      import re
+      content = outputs.get("design_content", "")
+      has_proto = bool(re.search(r'```(?:proto|protobuf)', content, re.IGNORECASE))
+      has_ts = bool(re.search(r'```(?:typescript|ts)', content, re.IGNORECASE))
+      has_schemas = has_proto or has_ts
+      schema_type = "proto" if has_proto else "TypeScript" if has_ts else "none"
+      return (has_schemas, f"Schema type: {schema_type}")
+
+  - name: tenant_isolation
+    description: Design addresses tenant isolation
+    check: |
+      content = outputs.get("design_content", "").lower()
+      has_annotation = "osac.openshift.io/tenant" in content
+      has_prose = "tenant isolation" in content or ("tenant" in content and "isolat" in content)
+      return (has_annotation or has_prose, "Tenant isolation addressed" if (has_annotation or has_prose) else "Missing tenant isolation")
+
+  - name: length_check
+    description: Design is within expected range (200-800 non-blank lines)
+    check: |
+      content = outputs.get("design_content", "")
+      lines = len([l for l in content.split("\n") if l.strip()])
+      ok = 100 <= lines <= 900
+      return (ok, f"{lines} non-blank lines")
+
+  - name: design_quality
+    description: Overall design quality against OSAC rubric
+    prompt: |
+      Score this OSAC design document on 4 criteria:
+      1. Architecture (0-2): OSAC patterns, tenant isolation, cross-repo changes
+      2. Feasibility (0-2): Proto schemas, all CRUD ops, error codes, failure modes
+      3. Scope (0-2): PRD referenced, design goals, real alternatives
+      4. Testability (0-2): Specific unit/integration/e2e scenarios
+
+      Design content:
+      {{ outputs.design_content }}
+
+      Score each criterion, total /8, PASS (>=5, no zeros) or FAIL. Overall 1-5.
+
+  - name: pairwise_vs_gold
+    description: Blind comparison against gold-standard design
+    prompt: |
+      Compare two OSAC design documents for the same feature.
+
+      === Generated ===
+      {{ outputs.design_content }}
+
+      === Gold Standard ===
+      {{ annotations.gold_content }}
+
+      Compare on: architectural soundness, proto schema quality, test plan
+      coverage, scope boundaries, implementation depth. Score generated 1-5.
+
+thresholds:
+  structure_valid:
+    min_pass_rate: 1.0
+  proto_or_typescript:
+    min_pass_rate: 0.8
+  tenant_isolation:
+    min_pass_rate: 0.9
+  length_check:
+    min_pass_rate: 0.9
+  design_quality:
+    min_mean: 3.5
+  pairwise_vs_gold:
+    min_mean: 3.0
