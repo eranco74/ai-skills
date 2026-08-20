@@ -20,6 +20,13 @@ logic, provisioning workflows. The PRD (WHAT/WHY) is your primary input.
 
 ## OSAC Architectural Patterns
 
+### Tenant Isolation (Mandatory)
+
+All new resources MUST include:
+- `osac.openshift.io/tenant` annotation for tenant scoping
+- `osac.openshift.io/owner-reference` annotation for resource hierarchy
+- OPA policies enforce isolation at runtime
+
 ### Standard Object Shape
 
 All fulfillment-service resources follow:
@@ -34,13 +41,6 @@ message {Resource} {
 - **Spec** = desired state (user-controlled)
 - **Status** = observed state (system-controlled, includes conditions)
 - **Conditions** preferred over phase enums for lifecycle state
-
-### Tenant Isolation (Mandatory)
-
-All new resources MUST include:
-- `osac.openshift.io/tenant` annotation for tenant scoping
-- `osac.openshift.io/owner-reference` annotation for resource hierarchy
-- OPA policies enforce isolation at runtime
 
 ### Controller Pattern
 
@@ -74,12 +74,37 @@ Map SQLSTATE → gRPC via the `translateError` function.
 ## Generation Rules
 
 1. **Every design decision traces to the PRD.** Mark unverified decisions `[Assumption]`.
-2. **Include proto schemas** for any feature adding or modifying API resources.
+2. **Include proto schemas** for any feature adding or modifying API resources. For UI-only features with no API changes, skip proto schemas entirely.
 3. **Describe all CRUD operations** with specific error codes and validation rules.
 4. **No hand-waving.** "Handle errors" → name the error codes. "Implement validation" → specify the rules.
 5. **Honest constraints.** Uncertain constraints are `[Assumption]`, not facts.
-6. **No scope creep.** Only design what the PRD requires.
+6. **No scope creep.** Only design what the PRD requires. See Scope Discipline below.
 7. **Resolution timing.** Prefer controller-time resolution (declarative) over API-time resolution. Store symbolic references in spec; resolve in controller.
+8. **Use OSAC personas in workflows.** Always name actors as: Cloud Provider Admin, Cloud Infrastructure Admin, Tenant Admin, or Tenant User — never generic "Admin" or "User".
+9. **Mark architectural uncertainty.** When the PRD doesn't specify which component to extend, mark the decision as `[Assumption]` and list an `[Open Question]`.
+
+## Scope Discipline
+
+The design must match the PRD's scope exactly. These are the most common scope violations — avoid them:
+
+- **Do NOT invent observability content** (Prometheus metrics, alerts, Grafana dashboards, structured log events) unless the PRD specifically lists monitoring as In Scope. If the template's "Observability and Monitoring" section doesn't apply, write: "No new observability changes. Existing monitoring mechanisms apply."
+- **Do NOT add feature flags**, administrative escape hatches, or force-delete mechanisms not in the PRD.
+- **Do NOT create new resource types** (CRDs, proto messages, database tables) not mentioned or implied by the PRD.
+- **Non-Goals must mirror the PRD's Out of Scope** items — translate them to design terms but do not add new ones or remove existing ones.
+- **If a template section doesn't apply**, write "N/A — [brief explanation]" rather than inventing content to fill it.
+- **Prefer extending existing components** over creating new ones. Reference the OSAC architecture context for existing patterns.
+
+## Failure Handling Guidance
+
+Always cover these OSAC-specific failure categories (when applicable to the feature):
+
+- **Controller reconciliation failures**: transient API errors with exponential backoff, stale cache reads, behavior when controller restarts mid-reconciliation
+- **Database-level failures**: Z0001 (immutable field violation), Z0002 (referential integrity), Z0003 (resource in use / delete protection)
+- **AAP integration failures** (if applicable): job launch failure (HTTP timeout), job execution failure (callback with error), partial provisioning (job succeeds partially)
+- **Race conditions**: resource deleted between validation and persistence, concurrent updates to the same resource
+- **Cross-component failures**: fulfillment-service unavailable during controller reconciliation, Keycloak token exchange failure
+
+For each failure mode, specify: what happens, how the system recovers, and what the user observes (error code, status condition, or UI state).
 
 ## Size Calibration
 
@@ -109,3 +134,12 @@ Use these markers:
 - [ ] Cross-repo changes enumerated (fulfillment-service, osac-operator, osac-aap)
 - [ ] Source markers present for PRD-derived and assumed decisions
 - [ ] Output length matches feature complexity (size calibration)
+
+## Evaluation
+
+This skill is evaluated against gold-standard merged design documents:
+
+- [`eval/eval.yaml`](eval/eval.yaml) — Forge eval harness config: invokes the skill with a Jira feature plus its approved PRD and scores the generated design against gold-standard merged designs.
+- [`eval/eval_forge_design.py`](eval/eval_forge_design.py) — standalone judge that scores any generated design against the OSAC quality criteria above (works on any `design.md`, no Forge required).
+
+Eval cases live under `eval/dataset/`. Re-run the harness to regenerate scores after changing the generation rules.
