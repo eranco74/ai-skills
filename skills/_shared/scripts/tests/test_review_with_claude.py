@@ -243,6 +243,27 @@ class ReviewWithClaudeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "blank text"):
             review_with_claude.resolve_review_spans(review, blank_catalog)
 
+    def test_source_obligation_span_enforces_stage_scope_artifact_allowlist(self):
+        prd_catalog = review_with_claude.build_line_catalog(self.packet)
+        review = self.span_review()
+        review["source_obligations"][0]["evidence"] = [{
+            "artifact": "document", "first_line": 1, "last_line": 1,
+        }]
+        with self.assertRaisesRegex(ValueError, "invalid scope artifact"):
+            review_with_claude.resolve_review_spans(review, prd_catalog)
+
+        design_packet = json.loads(json.dumps(self.packet))
+        design_packet["stage"] = "design"
+        design_packet["artifacts"]["approved_prd"] = {"text": "Approved product scope.\n"}
+        design_catalog = review_with_claude.build_line_catalog(design_packet)
+        review = self.span_review()
+        review["source_obligations"][0]["evidence"] = [{
+            "artifact": "approved_prd", "first_line": 1, "last_line": 1,
+        }]
+        resolved = review_with_claude.resolve_review_spans(review, design_catalog)
+        self.assertEqual("Approved product scope.\n",
+                         resolved["source_obligations"][0]["evidence"][0]["quote"])
+
     def test_adapter_passes_sealed_packet_with_catalog_and_saves_raw_review_provenance(self):
         review = self.span_review()
         envelope = {"type": "result", "structured_output": review}

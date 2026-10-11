@@ -39,7 +39,8 @@ def build_line_catalog(packet):
             "lines": [{"line": number, "text": line}
                       for number, line in enumerate(lines, 1)],
         }
-    return {"input_sha256": packet["input_sha256"], "artifacts": catalog}
+    return {"input_sha256": packet["input_sha256"], "stage": packet["stage"],
+            "artifacts": catalog}
 
 
 def resolve_review_spans(review, catalog):
@@ -67,6 +68,12 @@ def resolve_review_spans(review, catalog):
                 first, last = span["first_line"], span["last_line"]
                 if not isinstance(name, str) or name not in catalog["artifacts"]:
                     raise ValueError("evidence span names an unknown artifact")
+                if field == "source_obligations":
+                    allowed = {"source"}
+                    if catalog.get("stage") == "design":
+                        allowed.add("approved_prd")
+                    if name not in allowed:
+                        raise ValueError("source obligation span names an invalid scope artifact")
                 if type(first) is not int or type(last) is not int:
                     raise ValueError("evidence line numbers must be integers")
                 lines = catalog["artifacts"][name]["lines"]
