@@ -9,6 +9,7 @@ a design that failed review by editing based on review feedback.
 - Review file: `artifacts/design-reviews/{DESIGN_ID}-review.md`
 - Original: `artifacts/design-originals/{DESIGN_ID}-design.md` (if exists)
 - Context files in `context/`
+- Same-run design evidence record at `artifacts/design-tasks/{DESIGN_ID}-research.json`
 
 ## Critical Rules
 
@@ -23,6 +24,12 @@ a design that failed review by editing based on review feedback.
    scenarios at each level (unit/integration/e2e).
 6. **Add real alternatives.** Don't fabricate — analyze genuine options.
 7. **Preserve existing content.** Don't delete working sections.
+8. **Use the same evidence record.** Read `context/organizational-research.md`
+   and the existing PRD/design records; do not start another research run.
+   Keep each capability within an in-scope PRD requirement. Evidence claims by
+   themselves do not add requirements.
+9. **Keep conflicts visible.** Do not silently choose a side in an unresolved
+   material conflict; it blocks readiness.
 
 ## Process
 
@@ -31,6 +38,8 @@ a design that failed review by editing based on review feedback.
 1. Read the review file — understand what was flagged
 2. Read the design — understand current content
 3. Read the PRD (from `artifacts/design-tasks/{DESIGN_ID}-prd.md`) for requirements
+4. Read the organizational research contract and same-run design record; reuse
+   applicable PRD-stage evidence rather than creating new scope
 
 ### Step 2: Back Up Original
 
@@ -64,6 +73,12 @@ cp artifacts/design-tasks/{DESIGN_ID}-design.md artifacts/design-originals/{DESI
 - Add integration test scenarios with infrastructure
 - Add e2e test scenarios with user workflows
 - Make graduation criteria measurable
+
+For any revision that relies on a material Chai-informed fact, preserve or add
+the exact `[Chai:CLAIM_ID]` marker and a direct Markdown link to each verified
+source URL from the same record. For scope decisions, also cite the supporting
+in-scope PRD requirement ID and source link. If no recorded support exists,
+leave the proposal out of scope or mark it as an open question.
 
 ### Step 4: Update Frontmatter
 

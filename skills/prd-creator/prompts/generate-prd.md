@@ -9,17 +9,38 @@ PRD from a Jira Feature issue — without human interaction.
 - **Jira feature content** at `artifacts/prd-tasks/{JIRA_KEY}-source.md`
 - **OSAC context files** in `context/`
 - **Exemplar PRDs** in `context/exemplars/`
+- **Requirement and decision record** at `artifacts/prd-tasks/{JIRA_KEY}-research.json`
 
 Read ALL of these before writing.
+
+Read `context/organizational-research.md` and the rendered companion research
+record before drafting. Use explicit Jira requirements and applicable owner
+decisions as product scope. A non-Jira owner decision may support an In Scope
+requirement only when it is explicitly recorded under `requirements` with
+`scope: in`, cites a verified source, and the record shows why that decision
+applies to this feature. An accepted claim or decision state alone does not
+establish feature scope. Preserve `out` requirements as boundaries and treat
+constraints as constraints. Do not state proposed, unverified, superseded, or
+unknown claims as facts. Cite every material Chai-informed statement with the
+exact marker `[Chai:CLAIM_ID]` and a direct Markdown link to each verified
+source URL for that claim. Preserve both marker and link when consolidating
+evidence; a bare claim ID is not a citation.
+
+If research is `off`, `unavailable`, `timeout`, or `skipped`, use explicit Jira
+requirements and continue when they support a complete draft. If the record has
+an unresolved material conflict, identify it as an open issue and do not mark
+the PRD ready.
 
 ## Critical Rules
 
 1. **User-facing only.** Describe what users can do and observe. Never name
    controllers, reconcilers, finalizers, playbooks, env vars, internal conditions,
    or AAP job parameters. Those belong in the design document.
-2. **No fabrication.** Every requirement must trace to the Jira feature content.
-   If information is missing, write "TBD" — do not invent customers, metrics,
-   or requirements.
+2. **No fabrication.** Every requirement must trace to the Jira feature content
+   or an applicable owner decision explicitly recorded as `scope: in` with a
+   verified source and a clear feature-scope rationale. A `claim` marked
+   `accepted` is not sufficient by itself. If information is missing, write
+   "TBD" — do not invent customers, metrics, or requirements.
 3. **Follow the template exactly.** Use the OSAC PRD template structure from
    `context/prd-template.md`.
 4. **Cover all affected personas.** OSAC has four personas — check which are
@@ -45,9 +66,13 @@ Read ALL of these before writing.
    checklist, not a section to copy.
 10. **Add source markers sparingly.** Follow the consolidation rule: since most
     requirements trace to the primary Jira feature, don't tag every statement.
-    Only add `[Jira: {KEY}]` when a requirement comes from a non-obvious source
-    (linked issue, Jira comment). Add `[Assumption]` markers for any requirement
-    not directly stated in the Jira source.
+    Add `[Jira: {KEY}]` for non-obvious Jira sources. For every material
+    Chai-informed fact or decision, include `[Chai:CLAIM_ID]` and a direct
+    Markdown link to its verified source. Applicable owner decisions used to
+    establish feature scope must also cite their requirement ID and source link.
+    Add
+    `[Assumption]` for any requirement not directly stated in Jira or supported
+    by an explicitly applicable owner decision.
 11. **Scope tightly.** One PRD = one coherent feature. If the Jira feature bundles
     independent capabilities, note them but write the PRD for the core capability.
 12. **No design leakage smell tests:**
@@ -94,11 +119,12 @@ Match output depth to feature complexity. Do NOT over-engineer small features.
 
 Read these files in order:
 1. `artifacts/prd-tasks/{JIRA_KEY}-source.md` — the Jira feature content
-2. `context/prd-template.md` — the PRD template
-3. `context/osac-dimensions.md` — services, personas, cross-cutting dimensions
-4. `context/review-patterns.md` — reviewer expectations and anti-patterns
-5. `context/scoring-rubric.md` — how PRDs are scored
-6. At least two files from `context/exemplars/` — see what 9-10/10 PRDs look like
+2. `context/organizational-research.md` and the rendered research record
+3. `context/prd-template.md` — the PRD template
+4. `context/osac-dimensions.md` — services, personas, cross-cutting dimensions
+5. `context/review-patterns.md` — reviewer expectations and anti-patterns
+6. `context/scoring-rubric.md` — how PRDs are scored
+7. At least two files from `context/exemplars/` — see what 9-10/10 PRDs look like
 
 ### Step 2: Analyze the Feature
 
@@ -202,6 +228,8 @@ Before saving, verify:
 - [ ] **No Implementation** — no controllers, playbooks, internal components
 - [ ] **Honest Constraints** — uncertain constraints listed as assumptions
 - [ ] **No Scope Creep** — scope matches Jira feature, not broader vision
+- [ ] **Evidence Traceability** — Chai-informed facts cite a verified claim and direct source; requirements match the record
+- [ ] **Conflict Handling** — unresolved material conflicts are explicit and block readiness
 - [ ] **Right-Sized** — output depth proportional to feature complexity
 
 **Scoring readiness (target 7+/10):**

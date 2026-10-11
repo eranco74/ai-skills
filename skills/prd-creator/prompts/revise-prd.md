@@ -9,6 +9,7 @@ rubric review by editing the PRD file based on the review feedback.
 - Review file: `artifacts/prd-reviews/{PRD_ID}-review.md`
 - Original (pre-revision): `artifacts/prd-originals/{PRD_ID}.md`
 - Context files in `context/`
+- Same-run evidence record at `artifacts/prd-tasks/{PRD_ID}-research.json`
 
 ## Critical Rules
 
@@ -24,6 +25,12 @@ rubric review by editing the PRD file based on the review feedback.
 5. **Preserve user stories.** Don't rewrite working user stories. Only fix the ones
    flagged for being too generic or containing design leakage.
 6. **No HTML comments.** They're invisible in rendered markdown.
+7. **Use the same evidence record.** Read `context/organizational-research.md`
+   and this feature's existing record; do not launch another research run.
+   Preserve recorded Jira requirements and accepted decisions. Never add scope
+   from proposed/unverified claims or reviewer suggestions alone.
+8. **Material conflicts block readiness.** Keep unresolved material conflicts
+   visible in the review outcome; do not quietly choose a side.
 
 ## Process
 
@@ -32,6 +39,7 @@ rubric review by editing the PRD file based on the review feedback.
 1. Read the review file — understand what was flagged
 2. Read the PRD — understand current content
 3. Read the original (if exists) — understand what was already revised
+4. Read the organizational research contract and same-run evidence record
 
 ### Step 2: Back Up Original
 
@@ -72,6 +80,13 @@ For each criterion the review flagged:
 - Replace "handle appropriately" with named behavior
 - Replace internal metrics with user-observable metrics
 - Replace "system does X" with "user can observe/do X"
+
+For any revision that relies on a material Chai-informed fact, preserve or add
+the exact `[Chai:CLAIM_ID]` marker and a direct Markdown link to each verified
+source URL from the same record. For scope decisions, also cite the supporting
+requirement ID and source link from the same record. If no recorded support
+exists, leave the proposal out of scope or mark it as an open question; do not
+change the evidence record's run ID.
 
 ### Step 4: Update Frontmatter
 

@@ -1,0 +1,14 @@
+{
+  "chai_osac_public": {
+    "transport": "stdio",
+    "command": "uv",
+    "args": [
+      "run", "--no-project", "--with", "mcp>=1.30,<2", "--with", "tomli",
+      "python", "${AI_SKILLS_CHECKOUT}/skills/_shared/scripts/chai_research_server.py"
+    ],
+    "env": {
+      "CHAI_OSAC_PUBLIC_MCP_URL": "${CHAI_OSAC_PUBLIC_MCP_URL}",
+      "CHAI_OSAC_PUBLIC_MCP_TOKEN": "${CHAI_OSAC_PUBLIC_MCP_TOKEN}"
+    }
+  }
+}

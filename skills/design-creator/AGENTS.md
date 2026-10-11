@@ -10,11 +10,21 @@ logic, provisioning workflows. The PRD (WHAT/WHY) is the primary input.
 ## Pipeline
 
 ```
-BATCH_START → FETCH → FETCH_PRD → GENERATE → ASSESS → REVIEW → REVISE → FIXUP
+BATCH_START → FETCH → FETCH_PRD → RESEARCH → GENERATE → ASSESS → REVIEW → REVISE → FIXUP
   → REASSESS_CHECK → [REASSESS loop max 2] → REPORT → DONE
 ```
 
 ## Skills
+
+`RESEARCH` writes a feature/run-bound record after the Jira source and PRD are
+available. It reuses PRD-stage evidence where relevant. Unavailable, timeout,
+and skipped are explicit completion states; missing or stale records keep the
+research wave pending.
+
+The accepting caller additionally runs `../_shared/scripts/review_gate.py` with
+the owner-approved PRD, original scope, exact design artifacts, and primary
+captures. Use a fresh semantic reviewer session and preserve unresolved scope
+decisions for the owner. See the root README for the caller contract.
 
 | Skill | Description |
 |-------|-------------|
@@ -72,6 +82,7 @@ artifacts/
     OSAC-1269-design.md   # Design document
     OSAC-1269-source.md   # Jira feature content
     OSAC-1269-prd.md      # PRD content (input)
+    OSAC-1269-research.json # Requirements, evidence, and decisions for this run
   design-originals/      # Pre-revision backups
   design-reviews/        # Review files with scores
   pipeline-runs/         # Pipeline run reports

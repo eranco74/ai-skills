@@ -54,6 +54,15 @@ Before reviewing, read these files if they exist:
 3. `.planning/codebase/ARCHITECTURE.md` — system architecture for technical grounding
 4. `docs/personas.md` — canonical OSAC persona definitions
 
+For standalone creator artifacts, also read `references/organizational-research.md`
+and the matching `artifacts/design-tasks/<JIRA-KEY>-research.json` record. When
+reviewing a published design, locate the design-stage record and its linked PRD
+record by Jira key if available. Use the same run's verified claims and accepted
+scope decisions; do not start a new research run. If no record is available,
+state that evidence traceability could not be checked and do not endorse
+requirements beyond the PRD's cited scope. An unresolved material conflict
+blocks readiness.
+
 ## Scoring Rubric
 
 ### Context

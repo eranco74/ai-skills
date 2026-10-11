@@ -7,11 +7,28 @@ review with actionable feedback.
 ## Input
 
 - Design file at `artifacts/design-tasks/{DESIGN_ID}-design.md`
+- Owner-approved PRD at `artifacts/design-tasks/{DESIGN_ID}-prd.md`
+- Original Jira scope at `artifacts/design-tasks/{DESIGN_ID}-source.md`
 - Scoring rubric at `context/scoring-rubric.md`
 - OSAC dimensions at `context/osac-dimensions.md`
 - Review patterns at `context/review-patterns.md`
+- Research contract at `context/organizational-research.md`
+- Same-run record at `artifacts/design-tasks/{DESIGN_ID}-research.json`
 
-Read ALL of these before scoring.
+Read ALL of these before scoring. Do not start another research run. Check that
+each designed capability traces to an in-scope PRD requirement, and verify every
+material Chai-informed fact has the exact `[Chai:CLAIM_ID]` marker and a direct
+link to each verified source URL for that claim. A bare claim ID, unverified
+source, or unsupported marker is not citation evidence. Proposed or unverified
+claims do not support scope.
+
+Run this review in a fresh reviewer session. Inventory approved PRD obligations
+before checking extracted IDs; report requirements lost during extraction or
+handoff and hold readiness. Preserve approved scope when Jira or organizational
+context suggests a broader capability. The caller's separate `review_gate.py`
+audit binds final acceptance to the approved PRD, exact current design, and
+primary-source captures. A PRD-stage verification handoff must now be addressed
+in the design itself.
 
 ## Scoring Process
 
@@ -87,16 +104,53 @@ Check:
 - **PASS**: Total >= 5/8 AND no zeros
 - **FAIL**: Total < 5 OR any zero
 
+Readiness also requires complete same-run requirement coverage and no unresolved
+material conflict. These readiness failures make the overall verdict `FAIL`,
+`pass=false`, and recommendation `clarify`, even if the rubric score passes.
+Keep the numeric score separate from this readiness gate; `clarify` is excluded
+from automatic revision loops until the evidence or coverage is corrected.
+
+An unresolved material conflict or incomplete mandatory coverage blocks a
+`submit` recommendation even when the rubric score passes. A record status of `off`, `unavailable`, `timeout`, or
+`skipped` alone does not block a design grounded in a complete PRD; flag any
+evidence-dependent decision that lacks verified support.
+
 ### Step 4: Write Review
 
 Write to `artifacts/design-reviews/{DESIGN_ID}-review.md` with scores, verdict,
 findings (critical/important/suggestions), and dimension coverage table.
+Include an evidence and scope note with the same record's run ID and status,
+unsupported evidence-informed decisions, and unresolved material conflicts.
+
+Also write `artifacts/design-reviews/{DESIGN_ID}-coverage.json`. Use the exact
+requirement IDs from the same-run design research record, exactly once each,
+including `out` requirements. Bind it to the record's feature key and run ID:
+
+```json
+{
+  "schema_version": 1,
+  "feature_key": "{DESIGN_ID}",
+  "stage": "design",
+  "run_id": "{same run_id as the research record}",
+  "requirements": [
+    {"id": "{exact requirement ID}", "status": "covered", "evidence": "{design section or open question}"}
+  ]
+}
+```
+
+Each row's status must be `covered`, `unresolved`, or `omitted`, and its evidence
+must name a design passage, preserved out-of-scope boundary, or the unresolved
+question/omission. Mark an `in` or `constraint` requirement `covered` only when
+the design adequately addresses it within the PRD. Any `in` or `constraint`
+requirement that is unresolved, omitted, or missing makes readiness fail with
+recommendation `clarify`; do not send it into automatic revision. An `out`
+requirement is covered when the design preserves it as a boundary.
 
 Set frontmatter:
 ```bash
 python3 scripts/frontmatter.py set artifacts/design-reviews/{DESIGN_ID}-review.md \
     design_id={DESIGN_ID} score={total} pass={true/false} \
-    recommendation={submit/revise/reject} auto_revised=false \
+    recommendation={submit/revise/reject/clarify} auto_revised=false \
     scores.architecture={n} scores.feasibility={n} scores.scope={n} scores.testability={n}
 ```
 

@@ -42,13 +42,13 @@ not platform behaviors or internal invariants.}
 - As a {persona}, I want {specific capability} so that {outcome}.
 
 ## Assumptions
-<!-- Optional: omit if no unverified assumptions underpin the requirements.
+<!-- Keep this heading; the body may be empty if no assumptions are needed.
      Do NOT put API contracts, interface specs, or design details here. -->
 
 - {Statement believed to be true but not yet verified}
 
 ## Dependencies
-<!-- Optional: omit if source material identifies no external dependencies.
+<!-- Keep this heading; the body may be empty if no external dependencies exist.
      Get dependency direction right: does this feature ENABLE something
      downstream, or does it DEPEND ON something upstream? -->
 

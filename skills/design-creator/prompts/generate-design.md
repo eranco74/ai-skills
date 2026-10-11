@@ -11,6 +11,8 @@ provisioning workflows. The PRD describes WHAT and WHY (user stories, scope).
 
 - **PRD** at `artifacts/design-tasks/{JIRA_KEY}-prd.md` (primary requirements input)
 - **Jira feature** at `artifacts/design-tasks/{JIRA_KEY}-source.md` (supplementary context)
+- **Requirement and decision record** at `artifacts/design-tasks/{JIRA_KEY}-research.json`
+- **PRD-stage record**, when present, at `../prd-creator/artifacts/prd-tasks/{JIRA_KEY}-research.json`
 - **Context files** in `context/`
 - **Exemplar designs** in `context/exemplars/`
 - **Codebase conventions** — read component AGENTS.md files for affected repos
@@ -45,6 +47,16 @@ provisioning workflows. The PRD describes WHAT and WHY (user stories, scope).
 12. **Honest constraints.** An uncertain constraint is an assumption. If you're
     not sure whether a behavior is required, mark it `[Assumption]` and flag
     in the Open Questions section. Don't present uncertainty as fact.
+13. **Evidence-bounded scope.** Read `context/organizational-research.md` and
+    the same-run design record. Reuse verified PRD-stage sources and accepted
+    decisions where relevant. The PRD's recorded in-scope requirements define
+    product scope; technical evidence and claims do not add capabilities by
+    themselves. Cite every material Chai-informed fact or decision with the
+    exact marker `[Chai:CLAIM_ID]` and a direct Markdown link to each verified
+    source URL for that claim. A bare claim ID is not a citation. Do not present proposed, unverified,
+    superseded, or unknown claims as facts.
+14. **Conflicts stay visible.** Do not silently resolve an unresolved material
+    conflict. Record its impact as an open question and block readiness.
 
 ## Process
 
@@ -53,12 +65,14 @@ provisioning workflows. The PRD describes WHAT and WHY (user stories, scope).
 Read these files in order:
 1. `artifacts/design-tasks/{JIRA_KEY}-prd.md` (the PRD — primary requirements)
 2. `artifacts/design-tasks/{JIRA_KEY}-source.md` (Jira feature — supplementary)
-3. `context/design-template.md` (template to follow)
-4. `context/section-guidance.md` (per-section instructions)
-5. `context/osac-dimensions.md` (services, personas, dimensions)
-6. `context/review-patterns.md` (reviewer expectations)
-7. `context/scoring-rubric.md` (how designs are scored)
-8. At least one file from `context/exemplars/` (see what 8/8 designs look like)
+3. `context/organizational-research.md` and the rendered same-run design record
+4. The PRD-stage record, when present, to reuse its verified evidence and decisions
+5. `context/design-template.md` (template to follow)
+6. `context/section-guidance.md` (per-section instructions)
+7. `context/osac-dimensions.md` (services, personas, dimensions)
+8. `context/review-patterns.md` (reviewer expectations)
+9. `context/scoring-rubric.md` (how designs are scored)
+10. At least one file from `context/exemplars/` (see what 8/8 designs look like)
 
 ### Step 2: Explore Affected Codebase
 
@@ -257,6 +271,9 @@ Before saving, verify:
 
 **Scope:**
 - [ ] PRD referenced in frontmatter and Summary
+- [ ] Every designed capability maps to an in-scope PRD requirement; evidence claims alone do not extend scope
+- [ ] Chai-informed decisions cite `[Chai:CLAIM_ID]` and a verified direct source link
+- [ ] Unresolved material conflicts are explicit and block readiness
 - [ ] Goals are design constraints, not product outcomes
 - [ ] Non-goals are implementation-level exclusions
 - [ ] Alternatives section has at least one real alternative

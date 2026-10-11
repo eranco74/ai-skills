@@ -1,8 +1,8 @@
-# Phase 3: Self-Review
+# Phase 4: Self-Review
 
 **IMPORTANT: Do NOT output any review text, scores, or reasoning. Perform
 this review silently — evaluate each criterion internally, note what needs
-fixing, then proceed directly to Phase 4 (Revise) or Phase 5 (Output).
+fixing, then proceed directly to Phase 5 (Revise) or Phase 6 (Output).
 Your text output must contain ONLY the final PRD, never review commentary.**
 
 Score your PRD draft against the 5-criterion rubric below. Be strict — first
@@ -117,8 +117,9 @@ Score:
 Also verify these concrete checks against your draft:
 
 1. **Section check:** Count `## ` headings. Must have exactly: Problem
-   Statement, In Scope, Out of Scope, User Stories, Assumptions (optional),
-   Dependencies (optional). No other `## ` headings allowed (no Risks,
+   Statement, In Scope, Out of Scope, User Stories, Assumptions,
+   Dependencies. Keep all six headings, allowing empty optional bodies.
+   No other `## ` headings allowed (no Risks,
    Acceptance Criteria, Terminology, Milestone Scoping).
 
 2. **Persona check:** All four names must appear in the User Stories section:
@@ -147,29 +148,35 @@ Also verify these concrete checks against your draft:
    "introduces", "eliminates", "provides", "enables" used to describe the
    feature itself (not the user pain). Any match is a failure.
 
-8. **Async status check:** Scan In Scope for ANY of these async triggers:
-   provisioning, deployment, creation of ComputeInstance, ClusterOrder,
-   BareMetalInstance, storage volumes, CSI driver, GPU passthrough, or any
-   phrase like "automatically available", "on-demand", "when ready". If ANY
-   trigger is found, verify that BOTH conditions are met:
-   (a) In Scope includes a status/progress visibility bullet, AND
-   (b) User Stories includes a story about seeing current state and failure
-   reasons. Missing either is a failure.
+8. **Async status check:** Scan the draft for async triggers such as
+   provisioning, deployment, ComputeInstance, ClusterOrder, BareMetalInstance,
+   storage volumes, CSI driver, GPU passthrough, "automatically available",
+   "on-demand", or "when ready". For each trigger, check the Jira extraction
+   and durable record. If Jira or an applicable explicit owner decision
+   authorizes user-visible status/progress/failure details, verify that In
+   Scope and User Stories represent that requirement. If no approved source
+   authorizes it, do not fail for omission; instead verify the draft does not
+   imply that status capability. When the need is material and unresolved,
+   require a neutral Assumptions question rather than inferred scope.
 
-9. **Jira completeness check:** Re-read the original Jira input line by line.
-   For each concrete requirement, acceptance criterion, capability, or
-   explicit scope statement in the Jira description:
-   (a) Verify it appears somewhere in the PRD (In Scope, User Stories, or
-   Out of Scope with justification).
-   (b) If the Jira says something is out of scope or deferred, verify it
-   is in your Out of Scope section — not accidentally in In Scope.
-   List any gaps. Missing a Jira requirement is a failure.
+9. **Approved-source completeness check:** Re-read the Jira input and the
+   durable scoped evidence record. Verify every explicit Jira requirement and
+   every relevant, verified requirement from an applicable explicit owner
+   decision is represented in the PRD where applicable. If Jira or an owner decision
+   marks something out of scope or deferred, verify it is not accidentally
+   presented as In Scope. List missing or misclassified items. Proposed,
+   superseded, unknown, and unverified claims do not create requirements. A
+   claim state alone is not scope authority; implemented claims describe current
+   behavior, not a new requirement.
 
-10. **Scope creep check:** For each In Scope bullet, verify it traces to
-    something in the Jira input. If an In Scope item was NOT mentioned in
-    the Jira ticket (description, acceptance criteria, or linked issues),
-    it is scope creep — remove it or move it to Out of Scope. Do NOT
-    invent capabilities the Jira does not request.
+10. **Scope authority check:** Every In Scope bullet must trace to Jira or an
+    applicable explicit owner decision in the durable record with verified
+    source references. Every Out of Scope bullet must trace to an explicit Jira
+    exclusion or a verified owner decision excluding it. A claim's state alone
+    does not authorize scope; implemented claims describe current behavior.
+    Remove unsupported scope. Keep unresolved conflicts in the record and,
+    when they affect the boundary, state them neutrally under Assumptions; do
+    not choose a side without an accepted decision.
 
 11. **Persona separation check:** Verify that Tenant Admin and Tenant User
     have SEPARATE headings in User Stories unless they have genuinely
@@ -178,8 +185,60 @@ Also verify these concrete checks against your draft:
     one heading, verify that neither has ANY unique capability — if one
     does, split them into separate headings.
 
+12. **Evidence freshness check:** Reuse the record created for this `prd` run;
+    do not repeat broad research during review or revision. Verify cited source
+    URLs, dates, and revisions using the organizational-research contract.
+    If a source cannot be checked, treat its claim as unverified and do not
+    present it as settled. In `live` mode, make at most one targeted follow-up
+    only when a material gap or conflict blocks review; update the same run's
+    record and cited brief according to the contract. In `off` or `replay`, do
+    not make live calls. If material questions remain because evidence was
+    unavailable or unverified, keep them visible under Assumptions and mark the
+    draft incomplete for downstream design; an absent decision is not a
+    confirmed absence of a decision.
+
+13. **Research citation traceability:** Compare every material factual or
+    rationale statement derived from organizational research with the `claims`
+    in this run's record. Put `[Chai:CLAIM_ID]` inline beside each such
+    statement and include a nearby link to the verified original source.
+    Verify the claim ID exists, its wording and decision state
+    support the statement, and every referenced source is `verified` with its
+    URL, date, and revision present in the record and cited brief.
+    If a source is missing, unverified, or does not support the statement,
+    remove the factual assertion or mark the unresolved point neutrally under
+    Assumptions. A Chai citation does not authorize scope. Missing markers or
+    original-source links fail review.
+
+14. **Requirement-ID coverage:** Compare every explicit requirement ID in the
+    durable record and Jira extraction against the cited-brief coverage table.
+    Each ID must be marked `covered`, `unresolved`, or `omitted`, with its PRD
+    section and user-facing statement or open question. Translate technical
+    criteria into user-facing outcomes where possible and preserve remaining
+    tests, resource-audit, default-resolution, or other verification duties in
+    the sidecar/handoff. Never drop an explicit requirement to meet length or
+    style. Any material omission fails readiness; an unresolved owner decision
+    remains a question and must not become an affirmative story.
+
+15. **Diagnostic authorization:** For every story exposing diagnostic
+    payloads, verify the audience is authorized by an explicit approved
+    requirement or independently checked existing access control. Tenant
+    visibility or persona naming alone does not authorize payload access. If
+    authorization is unresolved, keep it as a question and do not describe the
+    audience as entitled to the data.
+
+16. **Persist coverage and final document:** Write `{KEY}-coverage.json` beside
+    the research record using the organizational contract's machine-readable
+    schema. Include every requirement ID, its covered/unresolved/omitted status,
+    and the actual draft passage or question. Re-read it after revision. Save
+    the final document to `document_output_path`; a filesystem-only runner uses
+    `/home/user/prd.md` when the caller supplies no path. Sidecars and final
+    document are distinct artifacts.
+
 ## Verdict
 
-If all checks pass → proceed to Phase 5 (Output).
-If any check fails → proceed to Phase 4 (Revise). Note which criteria scored
+If all checks pass → proceed to Phase 6 (Output).
+If any check fails → proceed to Phase 5 (Revise). Note which criteria scored
 low and which deterministic checks failed.
+An unresolved material conflict means the PRD is incomplete for downstream
+design even if the other checks pass; keep it unresolved in the record and
+visible under Assumptions.
