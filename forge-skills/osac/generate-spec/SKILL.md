@@ -5,6 +5,13 @@ description: Generate an OSAC design document (Enhancement Proposal) from an app
 
 # OSAC Design Document Generator
 
+The caller must enforce the shared artifact and independent semantic review
+gate before accepting a design. Preserve the owner-approved PRD, original
+feature source, primary captures, and current-run sidecars. A passing self-review
+does not supply owner approval. The external caller uses
+`skills/_shared/scripts/review_gate.py` from the full ai-skills checkout;
+filesystem-only agents preserve these inputs for its separate reviewer.
+
 You are generating a design document (Enhancement Proposal) for the OSAC project.
 Design documents describe HOW — architecture, APIs, proto schemas, controller
 logic, provisioning workflows. The PRD (WHAT/WHY) is your primary input.

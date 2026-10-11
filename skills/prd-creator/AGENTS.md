@@ -24,6 +24,11 @@ BATCH_START → FETCH → RESEARCH → GENERATE → ASSESS → REVIEW → REVISE
 Unavailable, timeout, and skipped are explicit completion states; missing or
 stale records keep the research wave pending.
 
+The accepting caller additionally runs `../_shared/scripts/review_gate.py` with
+original scope, exact artifacts, and primary captures. Its independent reviewer
+must use a fresh session. A passing score or pipeline report alone does not
+supply feature-owner approval. See the root README for the caller contract.
+
 ### State Machine
 
 The pipeline state machine (`scripts/pipeline_state.py`) manages:

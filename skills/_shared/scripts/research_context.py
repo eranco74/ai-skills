@@ -171,7 +171,14 @@ def check_artifacts(record, brief, document, coverage, *, forge_prd=False):
                 "semantic_review_required": True}
     if not brief.strip() or record["run_id"] not in brief:
         errors.append("brief is empty or does not identify this run")
-    if not document.lstrip().startswith("# "):
+    body = document.lstrip()
+    if not forge_prd and body.startswith("---\n"):
+        # Native pipeline files carry frontmatter; validate the title beneath it
+        # without altering the saved document or allowing a commentary prefix.
+        frontmatter = re.match(r"\A---\n.*?\n---(?:\n|$)", body, re.S)
+        if frontmatter:
+            body = body[frontmatter.end():].lstrip()
+    if not body.startswith("# "):
         errors.append("document must start with its title, without commentary")
     if forge_prd:
         headings = re.findall(r"^## (.+)$", document, re.M)

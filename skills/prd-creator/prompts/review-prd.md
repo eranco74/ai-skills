@@ -7,6 +7,7 @@ feedback.
 ## Input
 
 - PRD file at `artifacts/prd-tasks/{PRD_ID}.md`
+- Original Jira scope at `artifacts/prd-tasks/{PRD_ID}-source.md`
 - Scoring rubric at `context/scoring-rubric.md`
 - OSAC dimensions at `context/osac-dimensions.md`
 - Review patterns at `context/review-patterns.md`
@@ -19,6 +20,13 @@ direct link to each verified source URL for that claim. A bare claim ID,
 unverified source, or unsupported marker is not citation evidence. Check
 requirements against recorded `in`, `out`, and constraint decisions. Proposed
 or unverified claims do not support scope.
+
+Run this review in a fresh reviewer session. Compare original Jira obligations
+with the extracted record before checking coverage. A requirement omitted from
+extraction is still an omission; report it and hold readiness. Preserve all
+explicit source obligations through user-facing wording or an explicit technical
+verification handoff. The caller's separate `review_gate.py` audit binds final
+acceptance to exact current artifacts and primary-source captures.
 
 ## Scoring Process
 

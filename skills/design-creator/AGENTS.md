@@ -21,6 +21,11 @@ available. It reuses PRD-stage evidence where relevant. Unavailable, timeout,
 and skipped are explicit completion states; missing or stale records keep the
 research wave pending.
 
+The accepting caller additionally runs `../_shared/scripts/review_gate.py` with
+the owner-approved PRD, original scope, exact design artifacts, and primary
+captures. Use a fresh semantic reviewer session and preserve unresolved scope
+decisions for the owner. See the root README for the caller contract.
+
 | Skill | Description |
 |-------|-------------|
 | `design.create` | Generate design from Jira feature + PRD |

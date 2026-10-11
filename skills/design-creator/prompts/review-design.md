@@ -7,6 +7,8 @@ review with actionable feedback.
 ## Input
 
 - Design file at `artifacts/design-tasks/{DESIGN_ID}-design.md`
+- Owner-approved PRD at `artifacts/design-tasks/{DESIGN_ID}-prd.md`
+- Original Jira scope at `artifacts/design-tasks/{DESIGN_ID}-source.md`
 - Scoring rubric at `context/scoring-rubric.md`
 - OSAC dimensions at `context/osac-dimensions.md`
 - Review patterns at `context/review-patterns.md`
@@ -19,6 +21,14 @@ material Chai-informed fact has the exact `[Chai:CLAIM_ID]` marker and a direct
 link to each verified source URL for that claim. A bare claim ID, unverified
 source, or unsupported marker is not citation evidence. Proposed or unverified
 claims do not support scope.
+
+Run this review in a fresh reviewer session. Inventory approved PRD obligations
+before checking extracted IDs; report requirements lost during extraction or
+handoff and hold readiness. Preserve approved scope when Jira or organizational
+context suggests a broader capability. The caller's separate `review_gate.py`
+audit binds final acceptance to the approved PRD, exact current design, and
+primary-source captures. A PRD-stage verification handoff must now be addressed
+in the design itself.
 
 ## Scoring Process
 

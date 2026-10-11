@@ -147,6 +147,80 @@ It does not remove commentary or certify semantic coverage/source truth. A passi
 result is ready for independent source/scope review, not owner approval. For a
 native draft or design, omit `--forge-prd` and use that stage's document format.
 
+### Enforced independent review
+
+Use [review_gate.py](skills/_shared/scripts/review_gate.py) as the caller's
+acceptance boundary. It runs the artifact checks, sends an exact hashed input
+packet to a separate reviewer process, validates the review's requirement and
+source-obligation accounting, and rejects stale reviews or input changes. A
+nonzero exit means the caller must retain the draft as incomplete. A zero exit
+means `ready_for_owner_review`; owner approval is still required.
+
+Supply the original frozen Jira source and independently acquired primary-source
+captures for every source marked verified in the research record. For design,
+also supply the owner-approved PRD. The reviewer inventories obligations from
+the original scope, so extraction omissions remain visible even when every
+extracted ID has a passing generator coverage row.
+
+The optional read-only [primary-source capture helper](skills/_shared/scripts/primary_source_capture.py)
+uses existing Jira/GitHub CLI authentication and accepts explicit OSAC issue,
+GitHub file, PR, issue, and commit URLs:
+
+```bash
+python3 skills/_shared/scripts/primary_source_capture.py capture \
+  "https://github.com/OWNER/REPO/blob/main/PATH" --output-dir "$CAPTURE_DIRECTORY"
+```
+
+It resolves GitHub file refs to immutable commits and saves source text, hashes,
+metadata, and receipts, including failed attempts. A captured source still needs
+semantic verification: merged design text does not prove implemented behavior.
+The helper supplies no organizational search or Slack access. A Forge caller
+without shell tools must expose it as a local read-only tool before requiring
+the agent to verify citations; the experimental caller does this separately
+from the ask-only Chai MCP bridge.
+
+The optional [Claude adapter](skills/_shared/scripts/review_with_claude.py)
+starts a fresh UUID session with tools and MCP disabled, structured output, and
+the [independent review prompt](skills/_shared/prompts/review-evidence.md).
+Create a reviewer command file containing a JSON argv array, for example:
+
+```json
+["python3", "/absolute/ai-skills/skills/_shared/scripts/review_with_claude.py",
+ "--model", "YOUR_MODEL", "--output", "/absolute/run/reviewer-runtime"]
+```
+
+Then run the gate after the existing generation/revision workflow:
+
+```bash
+python3 skills/_shared/scripts/review_gate.py \
+  --record "$RESEARCH_RECORD" --brief "$RESEARCH_BRIEF" \
+  --document "$DOCUMENT" --coverage "$COVERAGE_RECORD" \
+  --source "$FROZEN_JIRA_SOURCE" --source-capture "JIRA=$FROZEN_JIRA_SOURCE" \
+  --feature "$FEATURE_KEY" --stage prd --run-id "$RESEARCH_RUN_ID" \
+  --mode "$RESEARCH_MODE" --forge-prd \
+  --generator-id "$GENERATOR_SESSION" --reviewer-id "$REVIEWER_SESSION" \
+  --review-command "$REVIEW_COMMAND_JSON" --output "$NEW_GATE_DIRECTORY"
+```
+
+The capture ID `JIRA` in this example must match the actual record's source ID.
+Repeat `--source-capture ID=PATH` for its other verified sources. Use
+`--approved-prd PATH --stage design` for design; omit `--forge-prd` for standalone
+or design artifacts. Each gate/reviewer output directory must be new.
+
+To wrap a generation-only caller, also pass `--generation-command PATH`, another
+JSON argv array. Its record/brief/document/coverage output paths must be fresh.
+The gate runs generation first and prevents acceptance unless both reviews pass.
+Generation must have publication disabled; this wrapper does not intercept
+external actions performed inside an arbitrary command. Hosted Forge must wire
+the gate between artifact collection and publication in its own runtime.
+
+These checks bind reviews to submitted bytes and verify quoted passages and
+accounting. The caller owns source acquisition/authenticity and fresh reviewer
+configuration; the reviewer owns semantic relevance and source support. Those
+trust boundaries remain visible. The Claude adapter records its actual fresh
+session and model response; distinct caller labels alone do not prove reviewer
+independence. Unit tests use fixture reviewers, not model-quality judgments.
+
 ### What Makes It OSAC-Specific
 
 - **4 personas**: Cloud Provider Admin, Cloud Infrastructure Admin, Tenant Admin, Tenant User

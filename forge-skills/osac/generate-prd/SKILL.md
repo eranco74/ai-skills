@@ -153,6 +153,13 @@ After revision, re-run the inline checks from Phase 4 to verify no regressions.
 
 ## Phase 6: Output
 
+The caller must enforce the shared artifact and independent semantic review
+gate before accepting this output. Your self-review is generation feedback;
+it does not certify owner readiness. Preserve the original scope, primary
+captures, and sidecars for that separate reviewer. The external caller uses
+`skills/_shared/scripts/review_gate.py` from the full ai-skills checkout;
+filesystem-only Forge agents do not pretend to execute that helper.
+
 Write the final PRD ensuring:
 
 - [ ] The final document was written to `document_output_path` (filesystem-only

@@ -40,6 +40,13 @@ class ArtifactChecks(unittest.TestCase):
         self.assertFalse(result['valid'])
         self.assertIn('without commentary', ' '.join(result['errors']))
 
+    def test_native_frontmatter_is_allowed_but_commentary_is_not(self):
+        document = '---\nprd_id: OSAC-1\nstatus: Draft\n---\n\n' + self.document
+        self.assertTrue(self.check(document=document, forge_prd=False)['valid'])
+        self.assertFalse(self.check(document=document)['valid'])
+        self.assertFalse(self.check(document='Commentary\n' + document, forge_prd=False)['valid'])
+        self.assertFalse(self.check(document='---\nUnclosed metadata\n' + self.document, forge_prd=False)['valid'])
+
     def test_stale_coverage_and_missing_requirement_rejected(self):
         self.coverage['run_id']='previous-run'
         self.coverage['requirements']=[]

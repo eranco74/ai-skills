@@ -141,6 +141,17 @@ promoting an artifact. A skill instruction is not an enforcement hook in Forge;
 the check is a separate integration step and does not replace semantic or source
 review. The shared helper lives in the full checkout, not a Forge-only skill copy.
 
+For acceptance, the caller must use
+[`review_gate.py`](../skills/_shared/scripts/review_gate.py), as described in the
+[root README](../README.md#enforced-independent-review). It enforces the artifact
+check and launches a separate semantic reviewer with original scope and primary
+captures. A passing generator self-review cannot substitute for that step.
+Use the existing Forge generation/revision runner, then the gate; retain failed
+drafts and its `decision.json`. The local test runner needs an explicit MCP
+adapter hook for live generation, since its audited default has no MCP tools.
+Hosted Forge integration belongs between artifact collection and publication.
+The supplied files and helper do not install that hosted integration.
+
 ## Files Per Skill
 
 ```
