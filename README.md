@@ -182,6 +182,11 @@ from the ask-only Chai MCP bridge.
 The optional [Claude adapter](skills/_shared/scripts/review_with_claude.py)
 starts a fresh UUID session with tools and MCP disabled, structured output, and
 the [independent review prompt](skills/_shared/prompts/review-evidence.md).
+It gives the model a numbered view of the sealed artifacts. The model selects
+inclusive source line ranges, and the adapter resolves them to exact input
+text before submitting quotations to the gate. Invalid or empty ranges fail
+the review; there is no approximate quotation matching. The numbered catalog,
+raw model response, and selected ranges are retained for audit.
 Create a reviewer command file containing a JSON argv array, for example:
 
 ```json

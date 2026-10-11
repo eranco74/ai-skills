@@ -2,6 +2,7 @@
 """Fresh, tool-free Claude CLI adapter for review_gate's stdin/stdout contract."""
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -9,35 +10,112 @@ import sys
 import uuid
 
 
+SPAN_PROMPT = """Evidence format override for this review:
+The `packet` below is the sealed review packet. Its `input_sha256` identifies
+that original packet and must be copied unchanged into the review. The separate
+`evidence_catalog` is a numbered view of the exact artifact text in that
+packet. For every evidence item, return only `artifact`, `first_line`, and
+`last_line`; both line numbers are 1-based and inclusive. Select a consecutive
+range from one catalog artifact. Do not write a quote, paraphrase, normalize,
+trim, or reconstruct text. The adapter will resolve each span to its exact
+literal quote before passing the review to the gate. Use the schema's artifact
+allowlist and do not cite line numbers outside that artifact's catalog.
+"""
+
+
+EVIDENCE_FIELDS = ("source_obligations", "requirements", "claims", "findings")
+IDENTITY_FIELDS = ("schema_version", "feature_key", "stage", "run_id",
+                   "input_sha256", "reviewer_id")
+
+
+def build_line_catalog(packet):
+    """Number the exact artifact lines without changing the sealed packet."""
+    artifacts = packet["artifacts"]
+    catalog = {}
+    for name, artifact in artifacts.items():
+        lines = artifact["text"].splitlines(keepends=True)
+        catalog[name] = {
+            "line_count": len(lines),
+            "lines": [{"line": number, "text": line}
+                      for number, line in enumerate(lines, 1)],
+        }
+    return {"input_sha256": packet["input_sha256"], "artifacts": catalog}
+
+
+def resolve_review_spans(review, catalog):
+    """Replace model-selected line spans with exact packet artifact quotes."""
+    if not isinstance(review, dict):
+        raise ValueError("structured review must be an object")
+    if not isinstance(catalog, dict) or not isinstance(catalog.get("artifacts"), dict):
+        raise ValueError("evidence catalog is malformed")
+    resolved = json.loads(json.dumps(review))
+    for field in EVIDENCE_FIELDS:
+        rows = resolved.get(field)
+        if not isinstance(rows, list):
+            raise ValueError("structured review " + field + " must be a list")
+        for row in rows:
+            if not isinstance(row, dict):
+                raise ValueError("structured review verdict must be an object")
+            spans = row.get("evidence")
+            if not isinstance(spans, list) or not spans:
+                raise ValueError("review evidence must contain at least one line span")
+            quotes = []
+            for span in spans:
+                if not isinstance(span, dict) or set(span) != {"artifact", "first_line", "last_line"}:
+                    raise ValueError("evidence span must identify an artifact and inclusive line range")
+                name = span["artifact"]
+                first, last = span["first_line"], span["last_line"]
+                if not isinstance(name, str) or name not in catalog["artifacts"]:
+                    raise ValueError("evidence span names an unknown artifact")
+                if type(first) is not int or type(last) is not int:
+                    raise ValueError("evidence line numbers must be integers")
+                lines = catalog["artifacts"][name]["lines"]
+                if first < 1 or last < 1 or first > last or last > len(lines):
+                    raise ValueError("evidence span is outside the artifact line range")
+                quote = "".join(item["text"] for item in lines[first - 1:last])
+                if not quote.strip():
+                    raise ValueError("evidence span selects only blank text")
+                quotes.append({"artifact": name, "quote": quote})
+            row["evidence"] = quotes
+    return resolved
+
+
+def sha256_json(value):
+    payload = json.dumps(value, sort_keys=True, ensure_ascii=False,
+                         separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
 def schema(packet):
     properties = {key: {"const": packet[key]} for key in
-                  ("schema_version", "feature_key", "stage", "run_id", "input_sha256", "reviewer_id")}
+                  IDENTITY_FIELDS}
 
     def obj(fields):
         return {"type": "object", "properties": fields,
                 "required": list(fields), "additionalProperties": False}
 
-    def quoted(names):
+    def span_items(names):
         return {"type": "array", "minItems": 1, "items": obj({
             "artifact": {"type": "string", "enum": names},
-            "quote": {"type": "string", "minLength": 1}})}
+            "first_line": {"type": "integer", "minimum": 1},
+            "last_line": {"type": "integer", "minimum": 1}})}
 
     scope_names = ["source", "approved_prd"] if packet["stage"] == "design" else ["source"]
     properties["source_obligations"] = {"type": "array", "minItems": 1,
         "items": obj({"statement": {"type": "string", "minLength": 1},
                       "requirement_ids": {"type": "array", "items": {"type": "string"}},
-                      "evidence": quoted(scope_names)})}
+                      "evidence": span_items(scope_names)})}
     for field, statuses in (("requirements", ["covered", "unresolved", "omitted", "violated"]),
                             ("claims", ["supported", "unsupported", "unverified"])):
         properties[field] = {"type": "array", "items": obj({
             "id": {"type": "string", "minLength": 1},
             "status": {"type": "string", "enum": statuses},
             "rationale": {"type": "string", "minLength": 1},
-            "evidence": quoted(list(packet["artifacts"]))})}
+            "evidence": span_items(list(packet["artifacts"]))})}
     properties["findings"] = {"type": "array", "items": obj({
         "severity": {"type": "string", "enum": ["minor", "major", "blocking"]},
         "description": {"type": "string", "minLength": 1},
-        "evidence": quoted(list(packet["artifacts"]))})}
+        "evidence": span_items(list(packet["artifacts"]))})}
     properties["owner_questions"] = {"type": "array", "items": {"type": "string"}}
     return {"type": "object", "properties": properties,
             "required": list(properties), "additionalProperties": False}
@@ -54,18 +132,23 @@ def main(argv=None):
     args.output.mkdir(parents=True)
     try:
         packet = json.load(sys.stdin)
+        catalog = build_line_catalog(packet)
+        model_input = {"packet": packet, "evidence_catalog": catalog}
+        (args.output / "evidence-catalog.json").write_text(
+            json.dumps(catalog, indent=2, ensure_ascii=False) + "\n")
         session_id = str(uuid.uuid4())
         command = ["claude", "-p", "--bare", "--disable-slash-commands",
                    "--session-id", session_id, "--model", args.model,
                    "--effort", "medium", "--tools", "", "--strict-mcp-config",
                    "--mcp-config", '{"mcpServers":{}}', "--output-format", "json",
-                   "--system-prompt", packet["instructions"],
+                   "--system-prompt", packet["instructions"] + "\n\n" + SPAN_PROMPT,
                    "--json-schema", json.dumps(schema(packet))]
         (args.output / "invocation.json").write_text(json.dumps({
             "session_id": session_id, "model": args.model,
             "input_sha256": packet["input_sha256"], "tools": [],
+            "evidence_catalog_sha256": sha256_json(catalog),
             "mcp_servers": [], "bare": True, "resumed_session": False}, indent=2) + "\n")
-        response = subprocess.run(command, input=json.dumps(packet), text=True,
+        response = subprocess.run(command, input=json.dumps(model_input), text=True,
                                   capture_output=True, timeout=args.timeout,
                                   cwd=args.output, check=False)
         (args.output / "response.json").write_text(response.stdout)
@@ -81,7 +164,27 @@ def main(argv=None):
         review = payload.get("structured_output")
         if not isinstance(review, dict):
             raise ValueError("reviewer CLI did not return a structured review")
-        print(json.dumps(review))
+        raw_review_path = args.output / "structured-review.json"
+        raw_review_path.write_text(json.dumps(review, indent=2, ensure_ascii=False) + "\n")
+        provenance = {
+            **{field: packet[field] for field in IDENTITY_FIELDS},
+            "session_id": session_id,
+            "model": args.model,
+            "evidence_catalog_sha256": sha256_json(catalog),
+            "structured_review_sha256": sha256_json(review),
+        }
+        try:
+            resolved = resolve_review_spans(review, catalog)
+        except (ValueError, KeyError, TypeError, AttributeError, IndexError):
+            provenance["span_resolution"] = "failed"
+            (args.output / "provenance.json").write_text(
+                json.dumps(provenance, indent=2, ensure_ascii=False) + "\n")
+            raise
+        provenance["span_resolution"] = "resolved"
+        provenance["resolved_review_sha256"] = sha256_json(resolved)
+        (args.output / "provenance.json").write_text(
+            json.dumps(provenance, indent=2, ensure_ascii=False) + "\n")
+        print(json.dumps(resolved, ensure_ascii=False))
         return 0
     except subprocess.TimeoutExpired as exc:
         def as_text(value):
