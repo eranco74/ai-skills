@@ -10,6 +10,8 @@ appropriate, and draft reply comments.
 - PR comments fetched from GitHub (provided in context)
 - Review patterns: `context/review-patterns.md`
 - Scoring rubric: `context/scoring-rubric.md`
+- Research contract: `context/organizational-research.md`
+- Same-run evidence record: `artifacts/prd-tasks/{PRD_ID}-research.json`
 
 ## Process
 
@@ -20,15 +22,22 @@ For each reviewer comment, determine its category:
 | Category | Action |
 |----------|--------|
 | **Clarification request** | Draft reply explaining rationale from the PRD |
-| **Factual correction** | Update PRD and acknowledge |
-| **Scope question** | Draft reply; may need PRD edit |
-| **New requirement** | Add if clearly in scope; flag if ambiguous |
+| **Factual correction** | Update only when supported by Jira or a verified claim in the same record; acknowledge the source |
+| **Scope question** | Draft reply against recorded `in`, `out`, and constraint decisions |
+| **New requirement** | Add only when already supported by an explicit Jira requirement or accepted decision in the record; otherwise leave open |
 | **Design leakage flag** | Reframe to user-observable outcome in PRD |
 | **Missing persona** | Add user stories for flagged persona |
 | **Approval** | Acknowledge |
 | **Out of scope** | Draft reply explaining why |
 
 ### Step 2: Apply PRD Changes
+
+Read `context/organizational-research.md` and reuse the feature's existing
+record. Do not start another research run. Reviewer feedback alone does not
+create scope. A Chai-informed correction must cite a verified claim ID and
+direct source link from the record. If feedback exposes an unresolved material
+conflict, preserve it in the same record and response log, and do not mark the
+PRD ready. Set review frontmatter `pass=false` and `recommendation=revise`.
 
 For comments that require PRD changes:
 
@@ -40,6 +49,8 @@ For comments that require PRD changes:
 - Never remove content without replacement — reframe instead
 - Never add design details — keep user-observable focus
 - Never fabricate requirements not supported by the Jira feature
+- Never expand or remove scope without support in explicit Jira requirements
+  or accepted decisions in the same research record
 - Preserve existing user stories unless directly flagged
 
 ### Step 3: Draft Replies

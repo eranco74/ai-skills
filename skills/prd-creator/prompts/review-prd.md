@@ -10,8 +10,15 @@ feedback.
 - Scoring rubric at `context/scoring-rubric.md`
 - OSAC dimensions at `context/osac-dimensions.md`
 - Review patterns at `context/review-patterns.md`
+- Research contract at `context/organizational-research.md`
+- Same-run record at `artifacts/prd-tasks/{PRD_ID}-research.json`
 
-Read ALL of these before scoring.
+Read ALL of these before scoring. Do not start another research run. Verify
+every material Chai-informed fact has the exact `[Chai:CLAIM_ID]` marker and a
+direct link to each verified source URL for that claim. A bare claim ID,
+unverified source, or unsupported marker is not citation evidence. Check
+requirements against recorded `in`, `out`, and constraint decisions. Proposed
+or unverified claims do not support scope.
 
 ## Scoring Process
 
@@ -103,15 +110,55 @@ Score:
 - **PASS**: Total >= 7/10 AND no zeros
 - **FAIL**: Total < 7 OR any zero (automatic fail)
 
+Readiness also requires complete same-run requirement coverage and no unresolved
+material conflict. These readiness failures make the overall verdict `FAIL`,
+`pass=false`, and recommendation `clarify`, even if the rubric score passes.
+Keep the numeric score separate from this readiness gate; `clarify` is excluded
+from automatic revision loops until the evidence or coverage is corrected.
+
 ### Step 5: Determine Recommendation
 
 - **submit**: PRD passes — ready for design phase
 - **revise**: PRD fails but can be improved with edits
 - **reject**: Fundamental problem — not a valid PRD (content-only, design doc)
+- **clarify**: Evidence conflict or mandatory coverage is unresolved; wait for
+  evidence/decision updates instead of entering an automatic revision loop
+
+An unresolved material conflict or incomplete mandatory coverage blocks a
+`submit` recommendation and sets `pass=false`. A research status of `off`, `unavailable`, `timeout`, or `skipped` alone does not
+block a complete PRD based on explicit Jira requirements; identify any affected
+claims as unsupported instead.
 
 ### Step 6: Write Review
 
-Write to `artifacts/prd-reviews/{PRD_ID}-review.md`:
+Write to `artifacts/prd-reviews/{PRD_ID}-review.md`. Include an evidence and
+scope traceability note with the record's run ID and status, unsupported
+Chai-informed statements, and unresolved material conflicts. Keep this separate
+from rubric scores unless it affects a criterion.
+
+Also write `artifacts/prd-reviews/{PRD_ID}-coverage.json`. Use the exact
+requirement IDs from the same-run research record, exactly once each, including
+`out` requirements. Bind it to the record's feature key and run ID:
+
+```json
+{
+  "schema_version": 1,
+  "feature_key": "{PRD_ID}",
+  "stage": "prd",
+  "run_id": "{same run_id as the research record}",
+  "requirements": [
+    {"id": "{exact requirement ID}", "status": "covered", "evidence": "{PRD section or open question}"}
+  ]
+}
+```
+
+Each row's status must be `covered`, `unresolved`, or `omitted`, and its evidence
+must name a PRD passage, preserved out-of-scope boundary, or the unresolved
+question/omission. Mark an `in` or `constraint` requirement `covered` only when
+the PRD adequately addresses it. Any `in` or `constraint` requirement that is
+unresolved, omitted, or missing makes readiness fail with recommendation
+`clarify`; do not send it into automatic revision. An `out` requirement is
+covered when the PRD preserves it as a boundary.
 
 ```markdown
 ## PRD Review: {title}
@@ -155,7 +202,7 @@ Write to `artifacts/prd-reviews/{PRD_ID}-review.md`:
 ```bash
 python3 scripts/frontmatter.py set artifacts/prd-reviews/{PRD_ID}-review.md \
     prd_id={PRD_ID} score={total} pass={true/false} \
-    recommendation={submit/revise/reject} auto_revised=false \
+    recommendation={submit/revise/reject/clarify} auto_revised=false \
     needs_attention=false \
     scores.what={n} scores.why={n} scores.user_facing={n} \
     scores.right_sized={n} scores.testability={n}

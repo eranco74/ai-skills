@@ -27,7 +27,7 @@ cd ai-skills
 # Generate a PRD
 cd skills/prd-creator
 python3 scripts/fetch_feature.py OSAC-1270 --output artifacts/prd-tasks/OSAC-1270-source.md
-# In Claude Code: "Read prompts/generate-prd.md and context/, generate PRD for OSAC-1270"
+# In Claude Code: run prd.create OSAC-1270 --research-mode live
 python3 scripts/score_prd.py check-structure artifacts/prd-tasks/OSAC-1270.md
 
 # Generate a design (after PRD exists)
@@ -71,7 +71,7 @@ cp /path/to/enhancement-proposals/enhancements/OSAC-1270-*/prd.md artifacts/desi
 Each creator runs a pipeline:
 
 ```
-FETCH → GENERATE → ASSESS → REVIEW → REVISE → FIXUP → REASSESS (max 2) → REPORT
+FETCH → RESEARCH → GENERATE → ASSESS → REVIEW → REVISE → FIXUP → REASSESS (max 2) → REPORT
 ```
 
 - **Script phases** (Python) handle deterministic work: Jira fetch, structure checks, scoring, provenance, publish
@@ -79,6 +79,73 @@ FETCH → GENERATE → ASSESS → REVIEW → REVISE → FIXUP → REASSESS (max 
 - **Self-review** scores against a calibrated rubric with concrete examples
 - **Auto-fix** revises flagged issues (design leakage, missing personas, scope problems)
 - **Reassessment** re-scores after revision (max 2 cycles to prevent infinite loops)
+
+### Organizational evidence with Chai
+
+Both environments use the same [research contract](skills/_shared/context/organizational-research.md).
+Before drafting, extract explicit requirements and use `chai_osac_public`'s
+read-only `ask_persona` for material gaps in existing decisions and constraints.
+Keep cited evidence, uncertainty, and conflicts in a separate record; preserve
+the PRD/design templates. An accepted PRD governs design scope. Chai context does
+not silently authorize additional requirements.
+
+Native create/speedrun entry points accept `--research-mode live|off|replay`.
+Replay also requires `--replay-record PATH` (a file, or a directory containing
+`{KEY}-research.json`). Review and revision reuse that record. Standalone research
+prompts live in [prd-creator](skills/prd-creator/prompts/research-context.md) and
+[design-creator](skills/design-creator/prompts/research-context.md). Forge setup
+and caller parameters are documented in [forge-skills/README.md](forge-skills/README.md).
+
+Allow a slow persona up to 900 seconds. For Codex, set
+`tool_timeout_sec = 900` in the existing `[mcp_servers.chai_osac_public]` section.
+The optional [direct client](skills/_shared/scripts/ask_persona.py) also supports
+a long timeout without changing the configured endpoint or exposing credentials:
+
+```bash
+uv run --with 'mcp>=1.30,<2' --with tomli python skills/_shared/scripts/ask_persona.py \
+  --question-file /path/to/question.txt --output artifacts/chai/run-1 --timeout 900
+```
+
+This client requires Python 3.10+ and an existing streamable HTTP MCP entry in
+`~/.codex/config.toml`; the other shared evidence helpers use the standard library.
+It saves the request, raw response, timing, and status. Inspect original cited
+sources before marking claims verified. A timeout produces an incomplete draft
+with explicit questions, and unresolved material conflicts block readiness.
+
+For Forge, the [MCP example](forge-skills/chai-mcp.example.json) connects a
+[stdio research bridge](skills/_shared/scripts/chai_research_server.py) that
+exposes only `ask_persona`. Its mocked
+[checks](skills/_shared/scripts/tests/test_chai_research_server.py) exercise
+forwarding, the timeout, and unavailable outcomes without calling the server.
+
+The [validator/renderer](skills/_shared/scripts/research_context.py) checks record
+identity and references and excludes unverified statements from factual input.
+The [synchronizer](skills/_shared/scripts/sync_research_context.py) keeps the
+environment-specific contract copies identical. Run `make research-check` for
+parity and the [deterministic checks](skills/_shared/scripts/tests/test_research_context.py).
+
+Before accepting a Forge result, run the external artifact gate from a
+Python-capable caller (the filesystem-only agent cannot execute it):
+
+The caller can create exact-schema review scaffolding with
+`research_context.py coverage-template "$RESEARCH_RECORD" --output "$COVERAGE_RECORD"`
+before review. Every row starts unresolved. Give that template to the reviewer
+to fill from the actual draft; do not regenerate it after the review.
+
+```bash
+python3 skills/_shared/scripts/research_context.py check-artifacts \
+  "$RESEARCH_RECORD" --brief "$RESEARCH_BRIEF" \
+  --document "$DOCUMENT" --coverage "$COVERAGE_RECORD" \
+  --feature "$FEATURE_KEY" --stage prd --run-id "$RESEARCH_RUN_ID" \
+  --mode "$RESEARCH_MODE" --forge-prd
+```
+
+These variables refer to the saved run artifacts. The command fails on missing,
+stale or malformed sidecars, unresolved material coverage/conflicts, invalid
+citation references, a commentary prefix, or the wrong Forge PRD section shape.
+It does not remove commentary or certify semantic coverage/source truth. A passing
+result is ready for independent source/scope review, not owner approval. For a
+native draft or design, omit `--forge-prd` and use that stage's document format.
 
 ### What Makes It OSAC-Specific
 

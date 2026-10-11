@@ -30,15 +30,19 @@ gh api repos/{REPO}/pulls/{PR_NUMBER}/comments --paginate
 
 Read:
 1. `artifacts/prd-tasks/{PRD_ID}.md`
-2. `context/review-patterns.md`
-3. `context/scoring-rubric.md`
-4. `prompts/respond-feedback.md`
+2. `context/organizational-research.md` and the same run's
+   `artifacts/prd-tasks/{PRD_ID}-research.json`
+3. `context/review-patterns.md`
+4. `context/scoring-rubric.md`
+5. `prompts/respond-feedback.md`
 
 ## Step 3: Categorize and Apply
 
 Follow `prompts/respond-feedback.md` to:
 1. Categorize each comment (clarification, correction, scope question, etc.)
-2. Apply PRD changes for corrections and scope adjustments
+2. Apply changes supported by Jira or accepted decisions in the same research
+   record. Do not accept unsupported scope changes; record them as open
+   questions and explain the evidence boundary in the reply.
 3. Draft reply comments for clarifications
 
 ## Step 4: Re-score

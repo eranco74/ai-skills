@@ -1,4 +1,4 @@
-# Phase 4: Revise PRD
+# Phase 5: Revise PRD
 
 Your self-review identified issues in the draft. Fix them following these rules.
 
@@ -11,9 +11,10 @@ Your self-review identified issues in the draft. Fix them following these rules.
    user-observable outcome — do not delete the underlying need.
    "The controller invokes AAP to install CSI" → "Persistent storage is
    automatically available on the cluster."
-3. **Never invent requirements.** If WHY is weak because the Jira feature lacks
-   business justification, strengthen the problem statement from available info.
-   Do NOT fabricate customers, metrics, or impact data.
+3. **Never invent requirements or evidence.** If WHY is weak, use only the Jira
+   input and verified, cited research claims that support user-facing context.
+   Do NOT fabricate customers, metrics, impacts, dates, or decisions, and do
+   not promote proposed, superseded, unknown, or unverified claims.
 4. **Preserve working user stories.** Don't rewrite stories that were not
    flagged. Only fix the ones marked as too generic or containing design leakage.
 5. **Don't add sections to fix scores.** If WHAT scored low, improve existing
@@ -32,9 +33,12 @@ Your self-review identified issues in the draft. Fix them following these rules.
 ### WHY scored 0 or 1
 
 - Strengthen Problem Statement with available evidence
+- Use relevant, verified organizational evidence only for user-facing context
+  and cite its claim ID; retain its URL, date, and revision in the durable
+  record/cited brief. A claim state alone does not authorize new PRD scope.
 - Add cost of inaction ("If not addressed, ...")
 - Name who is affected ("Tenants cannot...", "Cloud Provider Admins must...")
-- Do NOT fabricate evidence — use only what's in the Jira source
+- Do NOT fabricate evidence — use only Jira and verified, cited research
 
 ### User-Facing Focus scored 0 or 1
 
@@ -94,6 +98,25 @@ After revising, verify:
 - [ ] No new design leakage introduced
 - [ ] User stories still specific
 - [ ] No fabricated requirements added
+- [ ] Every In Scope and Out of Scope item traces to Jira or an applicable,
+      explicit owner decision with verified source references in the durable
+      record; do not turn Jira omissions or unresolved questions into scope
+- [ ] Every research-backed statement retains `[Chai:CLAIM_ID]` and a nearby
+      link to its verified original source; reuse the same per-run record and
+      check source references, URLs, dates, and revisions in the cited brief
+- [ ] Refresh the cited-brief coverage table after revision: every explicit
+      requirement ID is `covered`, `unresolved`, or `omitted` and maps to the
+      current PRD statement/section or an open question. Preserve remaining
+      technical verification duties in the sidecar/handoff; no material ID is
+      omitted. Unresolved owner decisions remain questions.
+- [ ] Diagnostic payload stories qualify access by an explicit approved
+      requirement or verified existing access control; tenant visibility alone
+      does not authorize diagnostic access
+- [ ] The current-run JSON and cited brief exist and were reread after revision;
+      record identity still matches the Jira key, `prd` stage, run ID, and mode
+- [ ] Unresolved material conflicts remain marked unresolved, not rewritten as
+      settled requirements; while any remain, mark the PRD incomplete for
+      downstream design
 - [ ] Template structure preserved (still exactly 6 sections)
 - [ ] No trailing whitespace on any line
 - [ ] File ends with exactly one newline

@@ -55,6 +55,13 @@ Before reviewing, read these files if they exist:
 2. `.design/context/review-patterns.md` — reviewer feedback themes and anti-patterns
 3. `.planning/codebase/ARCHITECTURE.md` — system architecture for technical grounding
 
+For standalone creator artifacts, also read `references/organizational-research.md`
+and the matching `artifacts/prd-tasks/<JIRA-KEY>-research.json` record. When
+reviewing a published PRD, locate its companion record by Jira key if available.
+Use the same run's verified claims and accepted scope decisions; do not start a
+new research run. If no record is available, say evidence traceability could not
+be checked and do not invent or approve requirements beyond the PRD's cited scope.
+
 ## Scoring Rubric
 
 ### Context

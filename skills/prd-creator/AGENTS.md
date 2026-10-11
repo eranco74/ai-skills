@@ -8,7 +8,7 @@ deterministic operations, and LLM agents handle generation and review.
 ## Pipeline Architecture
 
 ```
-BATCH_START → FETCH → GENERATE → ASSESS → REVIEW → REVISE → FIXUP
+BATCH_START → FETCH → RESEARCH → GENERATE → ASSESS → REVIEW → REVISE → FIXUP
   → REASSESS_CHECK → [REASSESS loop max 2] → REPORT → DONE
 ```
 
@@ -18,7 +18,11 @@ BATCH_START → FETCH → GENERATE → ASSESS → REVIEW → REVISE → FIXUP
 |------|-------------|----------|
 | **noop** | Decision point, no dispatch | BATCH_START, REASSESS_CHECK |
 | **script** | Deterministic Python execution | FETCH, ASSESS, FIXUP, REPORT |
-| **agent** | LLM agent with background dispatch | GENERATE, REVIEW, REVISE |
+| **agent** | LLM agent with background dispatch | RESEARCH, GENERATE, REVIEW, REVISE |
+
+`RESEARCH` writes a feature/run-bound evidence record before generation.
+Unavailable, timeout, and skipped are explicit completion states; missing or
+stale records keep the research wave pending.
 
 ### State Machine
 
@@ -28,6 +32,8 @@ The pipeline state machine (`scripts/pipeline_state.py`) manages:
 - Barrier synchronization (wait-for-wave)
 - Reassess cycle limiting (max 2)
 - ID filtering (which PRDs need revision)
+- Research mode and run ID persistence (`off`, `live`, `replay`)
+- Feature-bound research record validation before generation
 
 ### Dispatch Loop
 
@@ -56,6 +62,7 @@ artifacts/
   prd-tasks/                 # Generated PRDs with YAML frontmatter
     OSAC-1269.md              # PRD keyed by Jira key
     OSAC-1269-source.md       # Raw Jira feature content
+    OSAC-1269-research.json   # Versioned requirements, evidence, and decisions
   prd-originals/             # Pre-revision backups
     OSAC-1269.md              # Baseline for diffing
   prd-reviews/               # Review files with YAML frontmatter

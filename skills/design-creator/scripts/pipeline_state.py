@@ -21,12 +21,14 @@ Usage:
 """
 
 import argparse
+import importlib.util
 import json
 import os
 import re
 import subprocess
 import sys
 import yaml
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -49,6 +51,14 @@ PHASE_CONFIG = {
         "type": "script",
         "command": "fetch_prd",
         "ids_file": "tmp/pipeline-active-ids.txt",
+        "next": "RESEARCH",
+    },
+    "RESEARCH": {
+        "type": "agent",
+        "prompt_file": "prompts/research-context.md",
+        "ids_file": "tmp/pipeline-active-ids.txt",
+        "poll_phase": "research",
+        "research_stage": "design",
         "next": "GENERATE",
     },
     "GENERATE": {
@@ -124,7 +134,7 @@ PHASE_CONFIG = {
     },
 }
 
-MAIN_SEQUENCE = ["FETCH", "FETCH_PRD", "GENERATE", "ASSESS", "REVIEW", "REVISE", "FIXUP"]
+MAIN_SEQUENCE = ["FETCH", "FETCH_PRD", "RESEARCH", "GENERATE", "ASSESS", "REVIEW", "REVISE", "FIXUP"]
 REASSESS_SEQUENCE = ["REASSESS_ASSESS", "REASSESS_REVIEW", "REASSESS_REVISE", "REASSESS_FIXUP"]
 
 
@@ -154,12 +164,74 @@ def write_ids(path, ids):
     p.write_text("\n".join(sorted(set(ids))) + "\n" if ids else "")
 
 
+def replay_record_for(state, feature_key):
+    """Resolve a replay fixture path, allowing a directory of per-feature records."""
+    replay_record = state.get("replay_record")
+    if not replay_record:
+        return ""
+    path = Path(replay_record)
+    if path.is_dir():
+        path = path / f"{feature_key}-research.json"
+    return str(path)
+
+
 def check_design_exists(design_id):
-    return Path(f"artifacts/design-tasks/{design_id}.md").exists()
+    return design_document_path(design_id).exists()
+
+
+def design_document_path(design_id):
+    """Canonical standalone design output path used by generation and bridge."""
+    return Path(f"artifacts/design-tasks/{design_id}-design.md")
+
+
+def design_original_path(design_id):
+    """Canonical pre-revision backup path."""
+    return Path(f"artifacts/design-originals/{design_id}-design.md")
 
 
 def check_review_exists(design_id):
     return Path(f"artifacts/design-reviews/{design_id}-review.md").exists()
+
+
+def has_unresolved_material_conflict(design_id):
+    """Whether the design evidence record blocks readiness for this feature."""
+    record_path = Path(f"artifacts/design-tasks/{design_id}-research.json")
+    try:
+        record = json.loads(record_path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return False
+    if not isinstance(record, dict) or record.get("feature_key") != design_id or record.get("stage") != "design":
+        return False
+    conflicts = record.get("conflicts", [])
+    return isinstance(conflicts, list) and any(
+        isinstance(conflict, dict)
+        and conflict.get("material") is True
+        and conflict.get("resolved") is False
+        for conflict in conflicts
+    )
+
+
+def coverage_blocks_readiness(design_id):
+    """Require same-run coverage using the shared schema validator."""
+    record_path = Path(f"artifacts/design-tasks/{design_id}-research.json")
+    if not record_path.exists():
+        return False  # Preserve compatibility with legacy reviews.
+    try:
+        record = json.loads(record_path.read_text())
+        coverage = json.loads(Path(f"artifacts/design-reviews/{design_id}-coverage.json").read_text())
+        helper_path = Path(__file__).resolve().parents[2] / "_shared/scripts/research_context.py"
+        spec = importlib.util.spec_from_file_location("research_coverage_validator", helper_path)
+        helper = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(helper)
+        if helper.validate_record(record, feature=design_id, stage="design"):
+            return True
+        if helper.validate_coverage(coverage, record):
+            return True
+    except (OSError, UnicodeDecodeError, ValueError, ImportError, AttributeError):
+        return True
+    scopes = {r["id"]: r["scope"] for r in record["requirements"]}
+    return any(scopes[row["id"]] in {"in", "constraint"} and row["status"] != "covered"
+               for row in coverage["requirements"])
 
 
 def get_review_score(design_id):
@@ -172,7 +244,16 @@ def get_review_score(design_id):
         return None
     try:
         fm = yaml.safe_load(parts[1])
-        return fm.get("score"), fm.get("pass"), fm.get("recommendation")
+        if not isinstance(fm, dict):
+            return None
+        score, passed, recommendation = fm.get("score"), fm.get("pass"), fm.get("recommendation")
+        if coverage_blocks_readiness(design_id):
+            return score, False, "clarify"
+        if has_unresolved_material_conflict(design_id):
+            # Keep this out of automatic revision loops; an owner must resolve
+            # the conflict before the result can be considered ready.
+            return score, False, "clarify"
+        return score, passed, recommendation
     except yaml.YAMLError:
         return None
 
@@ -213,7 +294,7 @@ def filter_for_reassess(ids):
         if result is None:
             continue
         score, passed, recommendation = result
-        if not passed and get_review_auto_revised(design_id):
+        if not passed and recommendation != "clarify" and get_review_auto_revised(design_id):
             reassess_ids.append(design_id)
     return reassess_ids
 
@@ -257,7 +338,7 @@ def fetch_prd(ids):
 def assess_all(ids):
     """Run deterministic scoring checks on all designs."""
     for design_id in ids:
-        design_path = f"artifacts/design-tasks/{design_id}.md"
+        design_path = str(design_document_path(design_id))
         if not Path(design_path).exists():
             print(f"  {design_id}: design not found, skipping assess", file=sys.stderr)
             continue
@@ -293,8 +374,8 @@ def assess_all(ids):
 def fixup(ids):
     """Validate auto_revised flags match actual content changes."""
     for design_id in ids:
-        orig_path = Path(f"artifacts/design-originals/{design_id}.md")
-        task_path = Path(f"artifacts/design-tasks/{design_id}.md")
+        orig_path = design_original_path(design_id)
+        task_path = design_document_path(design_id)
         review_path = Path(f"artifacts/design-reviews/{design_id}-review.md")
         if not orig_path.exists() or not task_path.exists() or not review_path.exists():
             continue
@@ -445,11 +526,35 @@ def next_action(state):
 
         agents = []
         for design_id in ids:
+            stage = config.get("research_stage")
+            research_record = f"artifacts/design-tasks/{design_id}-research.json"
+            replay_record = replay_record_for(state, design_id)
+            if stage and state.get("research_mode") == "replay":
+                if Path(replay_record).resolve() == Path(research_record).resolve():
+                    print(f"{design_id}: replay input must be separate from the current-run output record", file=sys.stderr)
+                    sys.exit(1)
+            agent_vars = [
+                f"JIRA_KEY={design_id}",
+                f"DESIGN_ID={design_id}",
+                f"RESEARCH_MODE={state.get('research_mode', 'live')}",
+                f"RESEARCH_RUN_ID={state.get('run_id', '')}",
+                f"RESEARCH_RECORD={research_record}",
+                f"RESEARCH_REPLAY_RECORD={replay_record}",
+            ]
+            if stage:
+                agent_vars.append(f"RESEARCH_STAGE={stage}")
             agent = {
                 "prompt_file": config["prompt_file"],
-                "vars": f"JIRA_KEY={design_id}\nDESIGN_ID={design_id}",
+                "vars": "\n".join(agent_vars),
             }
             agents.append(agent)
+
+        # Persist the exact dispatched wave so wait-for-wave cannot mistake a
+        # stale marker from an earlier phase for the current agent run.
+        write_ids("tmp/pipeline-wave-ids.txt", ids)
+        state["wave_phase"] = phase
+        state["wave_ids"] = ids
+        save_state(state)
 
         print(yaml.dump({
             "action": "launch_wave",
@@ -495,18 +600,63 @@ def run_phase(state):
 
 def wait_for_wave():
     """Check if current wave of agents has completed."""
-    wave_ids = read_ids("tmp/pipeline-wave-ids.txt")
-    if not wave_ids:
-        sys.exit(0)
-
     state = load_state()
     phase = state.get("phase", "DONE")
     config = PHASE_CONFIG.get(phase, {})
+    wave_ids = state.get("wave_ids") or read_ids("tmp/pipeline-wave-ids.txt")
+    if not wave_ids or state.get("wave_phase") != phase:
+        print("No dispatched agent wave for the current phase.", file=sys.stderr)
+        sys.exit(3)
 
     pending = []
     completed = []
     for design_id in wave_ids:
-        if phase in ("GENERATE",):
+        if phase == "RESEARCH":
+            record = f"artifacts/design-tasks/{design_id}-research.json"
+            validator = "../_shared/scripts/research_context.py"
+            try:
+                if state.get("research_mode") == "replay":
+                    fixture = replay_record_for(state, design_id)
+                    fixture_proc = subprocess.run(
+                        ["python3", validator, "validate", fixture,
+                         "--feature", design_id, "--stage", config["research_stage"]],
+                        capture_output=True, text=True, timeout=10
+                    )
+                    if fixture_proc.returncode != 0:
+                        pending.append(design_id)
+                        detail = (fixture_proc.stderr or fixture_proc.stdout).strip()
+                        print(f"  {design_id}: replay fixture pending: {detail or 'invalid or unavailable fixture'}", file=sys.stderr)
+                        continue
+
+                proc = subprocess.run(
+                    ["python3", validator, "validate", record,
+                     "--feature", design_id, "--stage", config["research_stage"],
+                     "--run-id", str(state.get("run_id", "")),
+                     "--mode", state.get("research_mode", "live")],
+                    capture_output=True, text=True, timeout=10
+                )
+                if proc.returncode == 0:
+                    # Derive the current brief deterministically from the validated
+                    # record; an absent or stale agent-written brief cannot pass.
+                    proc = subprocess.run(
+                        ["python3", validator, "render", record,
+                         "--feature", design_id, "--stage", config["research_stage"],
+                         "--run-id", str(state.get("run_id", "")),
+                         "--mode", state.get("research_mode", "live"),
+                         "--output", f"artifacts/design-tasks/{design_id}-research.md"],
+                        capture_output=True, text=True, timeout=10
+                    )
+                if proc.returncode == 0:
+                    completed.append(design_id)
+                else:
+                    pending.append(design_id)
+                    detail = (proc.stderr or proc.stdout).strip()
+                    if detail:
+                        print(f"  {design_id}: research record pending: {detail}", file=sys.stderr)
+            except (OSError, subprocess.TimeoutExpired) as e:
+                pending.append(design_id)
+                print(f"  {design_id}: research record pending: {e}", file=sys.stderr)
+        elif phase in ("GENERATE",):
             if check_design_exists(design_id):
                 completed.append(design_id)
             else:
@@ -530,28 +680,37 @@ def wait_for_wave():
         sys.exit(3)
     else:
         print(f"COMPLETE: {len(completed)}/{len(wave_ids)}", file=sys.stderr)
+        state.pop("wave_phase", None)
+        state.pop("wave_ids", None)
+        save_state(state)
+        write_ids("tmp/pipeline-wave-ids.txt", [])
         advance(state)
         sys.exit(0)
 
 
 def cmd_init(args):
+    run_id = args.run_id or f"design-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}"
     state = {
         "phase": "BATCH_START",
         "batch": 0,
         "total_batches": 1,
         "batch_size": args.batch_size,
         "headless": args.headless,
+        "research_mode": args.research_mode,
+        "replay_record": args.replay_record,
+        "run_id": run_id,
         "reassess_cycle": 0,
         "start_time": datetime.now(timezone.utc).isoformat(),
     }
 
     Path("tmp").mkdir(exist_ok=True)
+    write_ids("tmp/pipeline-wave-ids.txt", [])
     Path("artifacts/design-tasks").mkdir(parents=True, exist_ok=True)
     Path("artifacts/design-reviews").mkdir(parents=True, exist_ok=True)
     Path("artifacts/design-originals").mkdir(parents=True, exist_ok=True)
 
     save_state(state)
-    print(f"Pipeline initialized: batch_size={args.batch_size}, headless={args.headless}",
+    print(f"Pipeline initialized: batch_size={args.batch_size}, headless={args.headless}, research_mode={args.research_mode}, run_id={run_id}",
           file=sys.stderr)
 
 
@@ -562,6 +721,9 @@ def main():
     init_p = subparsers.add_parser("init")
     init_p.add_argument("--batch-size", type=int, default=5)
     init_p.add_argument("--headless", action="store_true")
+    init_p.add_argument("--research-mode", choices=("off", "live", "replay"), default="live")
+    init_p.add_argument("--replay-record", help="Frozen evidence JSON file, or a directory containing {JIRA_KEY}-research.json records; required for replay mode.")
+    init_p.add_argument("--run-id", help="Optional stable run ID for reproducible evaluation.")
 
     subparsers.add_parser("next-action")
     subparsers.add_parser("wait-for-wave")
@@ -577,6 +739,10 @@ def main():
     args = parser.parse_args()
 
     if args.command == "init":
+        if args.research_mode == "replay" and not args.replay_record:
+            parser.error("--replay-record is required when --research-mode=replay")
+        if args.research_mode != "replay" and args.replay_record:
+            parser.error("--replay-record requires --research-mode=replay")
         cmd_init(args)
         return
 

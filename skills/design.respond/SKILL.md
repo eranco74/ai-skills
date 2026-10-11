@@ -25,11 +25,19 @@ gh api repos/{REPO}/pulls/{PR}/comments --paginate
 
 ## Step 2: Categorize and Apply
 
+Read `context/organizational-research.md`, the design-stage record at
+`artifacts/design-tasks/{DESIGN_ID}-research.json`, the PRD, and Jira source.
+Use this existing feature/run record; do not start a new research run.
+
 Categories: architectural concern, API design feedback, missing section,
 test plan gap, scope question, factual correction, approval.
 
 For each:
-- Apply design changes where appropriate
+- Apply changes supported by the PRD or accepted decisions in the same research
+  record. Keep the design inside PRD in-scope requirements; leave unsupported
+  scope requests as open questions and explain the evidence boundary in the reply.
+- If the same record has an unresolved material conflict, mark the design not
+  ready and set its review frontmatter to `pass=false`, `recommendation=revise`.
 - Draft reply comments
 - Re-run deterministic checks after changes
 
