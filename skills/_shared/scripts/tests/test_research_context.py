@@ -84,6 +84,30 @@ class EvidenceChecks(unittest.TestCase):
             self.assertEqual([], research.validate_record(record))
             self.assertIn("Preserve tenant ownership", research.render_record(record))
 
+    def test_unknown_scope_date_does_not_discard_scope_or_verify_org_claims(self):
+        for mode, status in (("off", "skipped"), ("live", "timeout"),
+                             ("live", "unavailable"), ("live", "available")):
+            with self.subTest(mode=mode, status=status):
+                record = fixture()
+                record.update(research_mode=mode, status=status)
+                record["sources"][0].update(date=None, revision=None)
+                record["sources"].append({"id": "ORG", "url": "https://example.org/context",
+                    "date": None, "revision": None, "verification": "unverified"})
+                record["claims"] = [{"id": "C1", "statement": "Email delivery already exists.",
+                    "source_ids": ["ORG"], "decision_state": "implemented"}]
+                self.assertEqual([], research.validate_record(record))
+                brief = research.render_record(record)
+                self.assertIn("Preserve tenant ownership", brief)
+                self.assertNotIn("Email delivery already exists", brief)
+                self.assertIn("Unverified items excluded from factual input: C1", brief)
+
+    def test_render_never_auto_verifies_a_source_from_its_feature_url(self):
+        record = fixture()
+        record["sources"][0].update(url="https://redhat.atlassian.net/browse/OSAC-1",
+                                     verification="unverified")
+        self.assertNotIn("Preserve tenant ownership", research.render_record(record))
+        self.assertEqual("unverified", record["sources"][0]["verification"])
+
     def test_oversized_record_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "record.json"

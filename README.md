@@ -162,6 +162,16 @@ also supply the owner-approved PRD. The reviewer inventories obligations from
 the original scope, so extraction omissions remain visible even when every
 extracted ID has a passing generator coverage row.
 
+Keep ticket metadata outside the actionable requirement ledger, and retain
+explicit delivery obligations such as UX/UI gates and merged PRD/design. If an
+extracted requirement has no basis in the original scope, the reviewer can
+declare it in `unsupported_extracted_requirements` with a rationale and exact
+evidence. Each extracted ID must be either mapped to an original obligation or
+declared unsupported; unsupported entries hold the draft for correction. The
+reviewer must still inventory original obligations omitted by extraction.
+Organizational evidence can identify a dependency or conflict, but removing a
+required outcome requires an explicit owner decision.
+
 The optional read-only [primary-source capture helper](skills/_shared/scripts/primary_source_capture.py)
 uses existing Jira/GitHub CLI authentication and accepts explicit OSAC issue,
 GitHub file, PR, issue, and commit URLs:

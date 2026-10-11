@@ -464,6 +464,53 @@ review = {
         self.assertFalse(result["ready_for_owner_review"])
         self.assertTrue(result["owner_approval_required"])
 
+    def unsupported_review(self, packet):
+        review = self.valid_review(packet)
+        review["source_obligations"][0]["requirement_ids"] = []
+        review["unsupported_extracted_requirements"] = [{
+            "id": "R1", "rationale": "The extractor's interpretation is not authorized by original scope.",
+            "evidence": [{"artifact": "record", "quote": self.requirement_text}]}]
+        return review
+
+    def test_explicit_unsupported_extraction_is_valid_but_never_ready(self):
+        packet = review_gate.build_packet(self.record, self.packet_files(), "reviewer-run-1")
+        result = review_gate.review_result(self.unsupported_review(packet), packet)
+        self.assertTrue(result["valid"])
+        self.assertFalse(result["ready_for_owner_review"])
+        self.assertEqual("R1", result["unsupported_extracted_requirements"][0]["id"])
+        self.assertEqual([self.requirement_text], result["unextracted_source_obligations"])
+
+    def test_source_mapped_and_unsupported_ids_must_be_disjoint(self):
+        packet = review_gate.build_packet(self.record, self.packet_files(), "reviewer-run-1")
+        review = self.unsupported_review(packet)
+        review["source_obligations"][0]["requirement_ids"] = ["R1"]
+        self.assertFalse(review_gate.review_result(review, packet)["valid"])
+
+    def test_unsupported_extraction_does_not_skip_requirement_verdicts(self):
+        packet = review_gate.build_packet(self.record, self.packet_files(), "reviewer-run-1")
+        review = self.unsupported_review(packet)
+        review["requirements"] = []
+        self.assertFalse(review_gate.review_result(review, packet)["valid"])
+
+    def test_unsupported_extraction_requires_literal_source_or_record_evidence(self):
+        packet = review_gate.build_packet(self.record, self.packet_files(), "reviewer-run-1")
+        for evidence in ([], [{"artifact": "record", "quote": "Fabricated"}],
+                         [{"artifact": "document", "quote": self.document_text.strip()}]):
+            with self.subTest(evidence=evidence):
+                review = self.unsupported_review(packet)
+                review["unsupported_extracted_requirements"][0]["evidence"] = evidence
+                self.assertFalse(review_gate.review_result(review, packet)["valid"])
+
+    def test_unsupported_extraction_rejects_duplicate_unknown_or_malformed_ids(self):
+        packet = review_gate.build_packet(self.record, self.packet_files(), "reviewer-run-1")
+        valid_row = self.unsupported_review(packet)["unsupported_extracted_requirements"][0]
+        for rows in ([valid_row, valid_row], [{**valid_row, "id": "UNKNOWN"}],
+                     [{**valid_row, "id": []}], "R1", [None]):
+            with self.subTest(rows=rows):
+                review = self.unsupported_review(packet)
+                review["unsupported_extracted_requirements"] = rows
+                self.assertFalse(review_gate.review_result(review, packet)["valid"])
+
     def test_generator_and_reviewer_must_have_distinct_identities(self):
         args = self.gate_args()
         generator_at = args.index("--generator-id") + 1

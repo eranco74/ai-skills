@@ -11,7 +11,14 @@ source obligation is a blocking finding even if every extracted ID is covered.
 Independently inventory every source obligation, including scope boundaries and
 documentation/testing duties. Map each to extracted requirement IDs; use an
 empty mapping when extraction omitted it. Do not limit this inventory to the
-record's IDs. Every extracted ID also needs a source-obligation mapping.
+record's IDs. Every extracted ID needs a source-obligation mapping or an explicit
+entry in `unsupported_extracted_requirements`. Use that list when extraction
+invented an obligation or mistook descriptive metadata for a requirement. Quote
+the extracted record/source, explain the unsupported interpretation, and hold
+readiness. Never fabricate an original obligation to satisfy accounting.
+Multiple extracted IDs can map to one obligation; include every applicable ID,
+including constraints derived from that same source passage. Do not silently
+drop an ID because another row expresses a similar requirement.
 For design, `approved_prd` governs product scope; the caller is responsible for
 obtaining its owner approval. Source context must not expand that scope.
 Design inventory may quote `approved_prd` as its authoritative scope evidence.
@@ -27,6 +34,13 @@ honestly. Compare every cited Chai claim with its primary capture and decision
 state. Distinguish proposed, accepted, and implemented behavior. A source label
 of `verified` alone does not establish support. Flag uncited organizational
 claims, unsupported commitments, and unjustified diagnostic permissions.
+
+Descriptive labels do not require a new user-facing requirement. If the
+extractor put them in the ledger, identify that error rather than declaring them
+covered with source-only evidence. Preserve explicit delivery obligations.
+A missing existing capability is a delivery dependency, not authority to
+remove its required outcome. Examples left for PRD refinement are proposals,
+not already-approved scope exclusions.
 
 Return only a JSON object with these keys:
 
@@ -47,6 +61,7 @@ Return only a JSON object with these keys:
     {"id": "R1", "status": "covered", "rationale": "Explain the verdict",
      "evidence": [{"artifact": "document", "quote": "Exact input passage"}]}
   ],
+  "unsupported_extracted_requirements": [],
   "claims": [
     {"id": "C1", "status": "supported", "rationale": "Explain source support",
      "evidence": [{"artifact": "source:S1", "quote": "Exact source passage"}]}
@@ -59,6 +74,10 @@ Return only a JSON object with these keys:
 Account for every requirement ID, and exactly the claim IDs cited as
 `[Chai:ID]` in the draft. Use empty `claims` when none are cited.
 Requirement statuses: `covered`, `unresolved`, `omitted`, `violated`.
+Unsupported extracted requirements contain `id`, `rationale`, and `evidence`;
+they must be disjoint from the source inventory's mapped IDs and always hold
+readiness. An omitted original obligation still belongs in the independent
+source inventory with an empty mapping; this list cannot substitute for it.
 Claim statuses: `supported`, `unsupported`, `unverified`.
 Every verdict needs a rationale and at least one exact input quotation.
 Supported claims require a quotation from a `source:ID` capture supporting

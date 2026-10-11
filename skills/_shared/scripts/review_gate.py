@@ -106,6 +106,23 @@ def validate_review(review, packet):
             errors.append("omitted requirement needs a source-obligation quotation")
 
     expected_requirements = {row["id"] for row in packet["record"]["requirements"]}
+    unsupported_rows = review.get("unsupported_extracted_requirements", [])
+    unsupported_ids = set()
+    if not isinstance(unsupported_rows, list):
+        errors.append("unsupported extracted requirements must be a list")
+    else:
+        for row in unsupported_rows:
+            if not isinstance(row, dict):
+                errors.append("unsupported extracted requirement must be an object")
+                continue
+            rid = row.get("id")
+            if not isinstance(rid, str) or rid not in expected_requirements or rid in unsupported_ids:
+                errors.append("unsupported extracted requirement IDs must match inputs exactly once")
+            else:
+                unsupported_ids.add(rid)
+            if not isinstance(row.get("rationale"), str) or not row["rationale"].strip():
+                errors.append("unsupported extracted requirement needs a rationale")
+            evidence(row, obligation=True)
     inventory = review.get("source_obligations")
     mapped = set()
     if not isinstance(inventory, list) or not inventory:
@@ -127,8 +144,10 @@ def validate_review(review, packet):
             scope_names = {"source", "approved_prd"} if packet["stage"] == "design" else {"source"}
             if not isinstance(quotations, list) or not any(isinstance(q, dict) and isinstance(q.get("artifact"), str) and q["artifact"] in scope_names for q in quotations):
                 errors.append("source inventory must quote the original scope input")
-        if mapped != expected_requirements:
-            errors.append("source inventory must map every extracted requirement ID")
+        if mapped & unsupported_ids:
+            errors.append("extracted requirement cannot be both source-mapped and unsupported")
+        if mapped | unsupported_ids != expected_requirements:
+            errors.append("source inventory must map every extracted requirement ID or explicitly declare it unsupported")
 
     cited = set(re.findall(r"\[Chai:([^\]]+)\]", packet["artifacts"]["document"]["text"]))
     claims = {row["id"]: row for row in packet["record"]["claims"]}
@@ -187,11 +206,13 @@ def review_result(review, packet):
     unsupported = [row["id"] for row in review["claims"] if row["status"] != "supported"]
     major = [finding for finding in review["findings"] if finding["severity"] in {"major", "blocking"}]
     missing = [item["statement"] for item in review["source_obligations"] if not item["requirement_ids"]]
+    unsupported_requirements = review.get("unsupported_extracted_requirements", [])
     return {"valid": True, "errors": [], "pending_requirements": pending,
             "unsupported_claims": unsupported, "blocking_findings": major,
             "unextracted_source_obligations": missing,
+            "unsupported_extracted_requirements": unsupported_requirements,
             "owner_questions": review["owner_questions"],
-            "ready_for_owner_review": not pending and not unsupported and not major and not missing and not review["owner_questions"],
+            "ready_for_owner_review": not pending and not unsupported and not major and not missing and not unsupported_requirements and not review["owner_questions"],
             "owner_approval_required": True}
 
 

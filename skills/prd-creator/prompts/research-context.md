@@ -9,6 +9,11 @@ rules, retrieval limits, and uncertainty handling govern this step.
 1. Read `artifacts/prd-tasks/{JIRA_KEY}-source.md`. Extract explicit in-scope
    requirements, exclusions, and constraints with source references. Record
    missing material information as questions. Do not manufacture requirements.
+   The supplied original source is directly read primary scope in every mode;
+   mark its origin verified with null date/revision when unknown. Chai access is
+   not required to preserve these requirements. Extract delivery duties too;
+   leave descriptive metadata and proposed exclusion examples outside the
+   actionable requirement ledger.
 2. In `off` mode, record `status: skipped`; still preserve extracted requirements.
    In `replay` mode, read `{RESEARCH_REPLAY_RECORD}` without any live call.
    Validate its provenance and applicability to this source revision; bind the

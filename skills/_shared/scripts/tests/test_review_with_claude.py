@@ -28,6 +28,7 @@ class ReviewWithClaudeTests(unittest.TestCase):
             "input_sha256": "packet-hash-6285",
             "reviewer_id": "reviewer-run-1",
             "instructions": "Review only the attached packet.",
+            "record": {"requirements": [{"id": "R1"}]},
             "artifacts": {
                 "source": {"text": "Scope introduction.\nThe source obligation is R1.\n"},
                 "record": {"text": "Requirement R1 is recorded.\n"},
@@ -40,6 +41,35 @@ class ReviewWithClaudeTests(unittest.TestCase):
 
     def tearDown(self):
         self.temp.cleanup()
+
+    def test_schema_binds_ids_and_counts_to_actual_packet(self):
+        self.packet["record"]["requirements"].append({"id": "CONSTRAINT-2"})
+        self.packet["artifacts"]["document"]["text"] += "[Chai:C1] [Chai:C1]\n"
+        props = review_with_claude.schema(self.packet)["properties"]
+        self.assertEqual(["CONSTRAINT-2", "R1"], props["requirements"]["items"]["properties"]["id"]["enum"])
+        self.assertEqual(2, props["requirements"]["minItems"])
+        self.assertEqual(2, props["requirements"]["maxItems"])
+        self.assertEqual(["C1"], props["claims"]["items"]["properties"]["id"]["enum"])
+        self.assertEqual(1, props["claims"]["maxItems"])
+
+    def test_empty_ledger_and_citations_require_empty_verdict_arrays(self):
+        self.packet["record"]["requirements"] = []
+        props = review_with_claude.schema(self.packet)["properties"]
+        for field in ("requirements", "claims"):
+            self.assertEqual(0, props[field]["minItems"])
+            self.assertEqual(0, props[field]["maxItems"])
+        self.assertEqual(0, props["unsupported_extracted_requirements"]["maxItems"])
+
+    def test_unsupported_extraction_spans_resolve_and_schema_limits_roles(self):
+        review = self.span_review()
+        review["unsupported_extracted_requirements"] = [{"id": "R1", "rationale": "Unsupported extraction",
+            "evidence": [{"artifact": "record", "first_line": 1, "last_line": 1}]}]
+        resolved = review_with_claude.resolve_review_spans(review, review_with_claude.build_line_catalog(self.packet))
+        self.assertEqual(self.packet["artifacts"]["record"]["text"],
+                         resolved["unsupported_extracted_requirements"][0]["evidence"][0]["quote"])
+        props = review_with_claude.schema(self.packet)["properties"]
+        roles = props["unsupported_extracted_requirements"]["items"]["properties"]["evidence"]["items"]["properties"]["artifact"]["enum"]
+        self.assertEqual(["record", "source"], roles)
 
     def response(self, *, returncode=0, stdout="", stderr=""):
         return type("Completed", (), {

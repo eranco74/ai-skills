@@ -1,5 +1,11 @@
 # Prepare design evidence
 
+The caller-supplied original source and approved PRD are directly read primary
+scope in every mode. Mark their origins verified with null dates/revisions when
+unknown; Chai access is not required to preserve their requirements. Extract
+actionable product/delivery obligations, not descriptive metadata or tentative
+exclusion examples. Organizational context cannot reduce approved scope.
+
 Inputs: `{JIRA_KEY}`, `{RESEARCH_STAGE}`, `{RESEARCH_MODE}`,
 `{RESEARCH_RUN_ID}`, `{RESEARCH_RECORD}`, and `{RESEARCH_REPLAY_RECORD}`
 (the supplied fixture path in replay mode). Work in the creator's directory.

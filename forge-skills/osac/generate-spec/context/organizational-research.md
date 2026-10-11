@@ -47,6 +47,11 @@ Before drafting, save a requirements and evidence record with this structure:
   decision in the statement when that decision authorizes scope beyond Jira;
   link its original source and explain applicability in the provenance sidecar.
   A claim's `accepted` label alone is not that authorization.
+  Keep descriptive metadata (customer labels, reporter, component names) outside
+  this obligation ledger unless the source makes it an actionable constraint.
+  Include explicit delivery obligations as well as product behavior. Examples
+  left for PRD refinement are proposals to resolve, not approved exclusions;
+  retain them as questions or clearly labeled proposed refinements.
 - `claims`: objects with `id`, `statement`, `source_ids`, and `decision_state`
   (`accepted`, `proposed`, `implemented`, `superseded`, or `unknown`).
 - `conflicts`: objects with `id`, `description`, `source_ids`, `resolved`
@@ -73,6 +78,15 @@ passages with revisions and a verification manifest. If neither original-source
 access nor such a verified fixture is available, retain sources as unverified
 and exclude their statements from factual input.
 
+The caller-supplied original Jira/approved PRD is the scope authority in every
+mode. After reading those supplied primary bytes, record their source as
+`verified` for origin, even in `off`, `unavailable`, or `timeout` retrieval.
+Unknown dates/revisions can remain null. Verification of this supplied scope
+does not require Chai or an extra network request. Keep its explicit requirements
+in the brief; do not discard them because organizational retrieval was skipped.
+This source-origin verification is separate from proving an organizational
+claim or resolving a product ambiguity.
+
 ## Bounded retrieval
 
 Extract explicit requirements first. Identify a few consequential gaps. Make one
@@ -80,6 +94,11 @@ focused call, with at most one follow-up for an unresolved material gap. Request
 primary source URLs, dates/revisions, supporting passages, decision status,
 applicability, conflicts and missing evidence. Ask only about the gaps needed for
 this feature. Suggested brief budgets: 1,500 words for PRDs, 2,500 for designs.
+If a citation lacks a usable URL/revision or its primary capture fails, retain
+that failure and leave the claim unverified. Do not invent a historical commit
+from a date or present a current file as the cited historical revision. A useful
+lead is not a verified finding. A bounded follow-up can request missing evidence
+when the gap would materially affect the document.
 Reuse the brief across review/revision; refresh only for new decisions or changed
 sources. Existing personas, templates and rubrics remain local context.
 
@@ -106,6 +125,14 @@ summary is not automatically an approved product requirement. Surface conflicts
 with these authorities and record the applicable owner's resolution; avoid
 silently replacing one with another. Distinguish what exists today from what is
 being proposed for this feature.
+
+A missing implementation or incomplete dependency does not authorize removing
+a required feature. Keep the requirement, identify the delivery dependency or
+owner decision, and hold implementation readiness. For example, evidence that
+an email capability is incomplete must not turn a UI-and-email requirement into
+UI-only scope. A closed ticket or merged design establishes neither deployed
+behavior nor implementation code; an absence claim needs bounded search evidence
+and must remain qualified when the corpus/search history is not auditable.
 
 Research findings can corroborate requirements, explain rationale or identify a
 missing decision. Additional scope requires an explicit applicable decision.

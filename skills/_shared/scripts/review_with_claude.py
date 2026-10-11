@@ -4,6 +4,7 @@
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -23,7 +24,8 @@ allowlist and do not cite line numbers outside that artifact's catalog.
 """
 
 
-EVIDENCE_FIELDS = ("source_obligations", "requirements", "claims", "findings")
+EVIDENCE_FIELDS = ("source_obligations", "requirements", "claims", "findings",
+                   "unsupported_extracted_requirements")
 IDENTITY_FIELDS = ("schema_version", "feature_key", "stage", "run_id",
                    "input_sha256", "reviewer_id")
 
@@ -51,6 +53,8 @@ def resolve_review_spans(review, catalog):
         raise ValueError("evidence catalog is malformed")
     resolved = json.loads(json.dumps(review))
     for field in EVIDENCE_FIELDS:
+        if field == "unsupported_extracted_requirements" and field not in resolved:
+            continue  # Existing caller reviews remain compatible when every ID maps.
         rows = resolved.get(field)
         if not isinstance(rows, list):
             raise ValueError("structured review " + field + " must be a list")
@@ -108,17 +112,33 @@ def schema(packet):
             "last_line": {"type": "integer", "minimum": 1}})}
 
     scope_names = ["source", "approved_prd"] if packet["stage"] == "design" else ["source"]
+    requirement_ids = sorted(row["id"] for row in packet["record"]["requirements"])
+    claim_ids = sorted(set(re.findall(r"\[Chai:([^\]]+)\]", packet["artifacts"]["document"]["text"])))
+
+    def id_schema(ids):
+        value = {"type": "string", "minLength": 1}
+        if ids:
+            value["enum"] = ids
+        return value
+
     properties["source_obligations"] = {"type": "array", "minItems": 1,
         "items": obj({"statement": {"type": "string", "minLength": 1},
-                      "requirement_ids": {"type": "array", "items": {"type": "string"}},
+                      "requirement_ids": {"type": "array", "uniqueItems": True,
+                                          "maxItems": len(requirement_ids), "items": id_schema(requirement_ids)},
                       "evidence": span_items(scope_names)})}
     for field, statuses in (("requirements", ["covered", "unresolved", "omitted", "violated"]),
                             ("claims", ["supported", "unsupported", "unverified"])):
-        properties[field] = {"type": "array", "items": obj({
-            "id": {"type": "string", "minLength": 1},
+        ids = requirement_ids if field == "requirements" else claim_ids
+        properties[field] = {"type": "array", "minItems": len(ids), "maxItems": len(ids), "items": obj({
+            "id": id_schema(ids),
             "status": {"type": "string", "enum": statuses},
             "rationale": {"type": "string", "minLength": 1},
             "evidence": span_items(list(packet["artifacts"]))})}
+    properties["unsupported_extracted_requirements"] = {"type": "array",
+        "maxItems": len(requirement_ids), "items": obj({
+            "id": id_schema(requirement_ids),
+            "rationale": {"type": "string", "minLength": 1},
+            "evidence": span_items(["record", *scope_names])})}
     properties["findings"] = {"type": "array", "items": obj({
         "severity": {"type": "string", "enum": ["minor", "major", "blocking"]},
         "description": {"type": "string", "minLength": 1},
